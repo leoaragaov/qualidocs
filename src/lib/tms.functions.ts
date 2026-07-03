@@ -4,8 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
   TmsProjectDetail,
   TmsProjectRow,
-  TmsProjectDetail,
-  TmsProjectRow,
   TmsBug,
   TmsAuditLog,
   TmsSchedule,
@@ -13,7 +11,6 @@ import type {
   TmsUserStory,
   TmsTestCase,
   TmsExecHistory,
-  TmsTestCase,
 } from "./tms-types";
 
 // ---------- Projects ----------
