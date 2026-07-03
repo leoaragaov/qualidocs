@@ -546,6 +546,16 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
   );
 }
 
+function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "ok" | "bad" | "warn" }) {
+  const cls = tone === "ok" ? "text-green-600" : tone === "bad" ? "text-red-600" : tone === "warn" ? "text-amber-600" : "text-foreground";
+  return (
+    <div className="rounded-md border bg-card p-3">
+      <div className={`text-2xl font-bold ${cls}`}>{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
 function ReadOnlyBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
