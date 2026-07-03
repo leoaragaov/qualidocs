@@ -410,7 +410,7 @@ export type NotificationRow = {
   type: string;
   project_id: string | null;
   actor_id: string | null;
-  data: Record<string, unknown>;
+  data: Record<string, any>;
   read_at: string | null;
   created_at: string;
   project_name: string | null;
