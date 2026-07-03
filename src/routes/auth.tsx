@@ -50,8 +50,25 @@ function AuthPage() {
 
   const signIn = () =>
     withLoading(async () => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) toast.error(error.message);
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          console.error("[QualiDocs] Falha no login Supabase:", error);
+          const msg = (error.message || "").toLowerCase();
+          if (msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("credentials")) {
+            toast.error("Credenciais inválidas", { description: "Verifique seu e-mail e senha e tente novamente." });
+          } else if (msg.includes("email not confirmed")) {
+            toast.error("E-mail não confirmado", { description: "Confirme seu e-mail antes de entrar." });
+          } else if (msg.includes("network") || msg.includes("fetch") || msg.includes("failed to fetch")) {
+            toast.error("Falha de conexão com o servidor", { description: "Não conseguimos falar com o backend do QualiDocs. Verifique sua internet e tente novamente." });
+          } else {
+            toast.error("Não foi possível entrar", { description: error.message });
+          }
+        }
+      } catch (err) {
+        console.error("[QualiDocs] Erro inesperado no login:", err);
+        toast.error("Erro de conexão", { description: "Não foi possível contatar o servidor. Tente novamente em instantes." });
+      }
     });
 
   const signUp = () =>
