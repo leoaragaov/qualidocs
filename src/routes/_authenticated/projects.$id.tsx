@@ -193,6 +193,26 @@ function PlanoTab({ project, schedule, risks, onChange }: {
 
   return (
     <div className="space-y-6">
+      {project.codigo_acesso && (
+        <Card className="rounded-xl border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Código de acesso do projeto</p>
+              <p className="mt-1 font-mono text-2xl font-semibold tracking-widest text-primary">{project.codigo_acesso}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Compartilhe com quem deve colaborar neste projeto.</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(project.codigo_acesso); toast.success("Código copiado"); }
+                catch { toast.error("Falha ao copiar"); }
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" /> Copiar código
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Identificação</CardTitle>
