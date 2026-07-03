@@ -22,14 +22,26 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const redirectAfterAuth = () => {
+      let dest: { to: string; params?: any } = { to: "/projects" };
+      try {
+        const t = sessionStorage.getItem("pending_invite_token");
+        if (t) {
+          sessionStorage.removeItem("pending_invite_token");
+          dest = { to: "/invite/$token", params: { token: t } };
+        }
+      } catch {}
+      navigate({ ...dest, replace: true } as any);
+    };
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/projects", replace: true });
+      if (data.session) redirectAfterAuth();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) navigate({ to: "/projects", replace: true });
+      if (session) redirectAfterAuth();
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
 
   const withLoading = async (fn: () => Promise<void>) => {
     setLoading(true);
