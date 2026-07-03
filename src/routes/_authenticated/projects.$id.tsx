@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/projects/$id")({
   component: ProjectPage,
 });
 
-type Tab = "plano" | "us" | "ct" | "exec" | "bugs" | "audit" | "matriz";
+type Tab = "plano" | "us" | "ct" | "exec" | "bugs" | "audit" | "matriz" | "membros";
 
 function ProjectPage() {
   const { id } = Route.useParams();
