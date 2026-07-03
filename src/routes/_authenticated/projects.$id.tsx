@@ -397,17 +397,6 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
               <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={r.massa} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
               <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={r.passos} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
               <Field label="Resultado Esperado" className="md:col-span-2"><Textarea rows={4} value={r.esperado} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
-              <Field label="Resultado Obtido" className="md:col-span-2"><Textarea rows={2} value={r.obtido} onChange={(e) => upd({ ...r, obtido: e.target.value })} /></Field>
-              <Field label="Status">
-                <Select value={r.status} onValueChange={(v) => upd({ ...r, status: v as TestStatus })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(["Pendente", "Passou", "Falhou", "Bloqueado"] as TestStatus[]).map((s) =>
-                      <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Evidência"><Input value={r.evidencia} onChange={(e) => upd({ ...r, evidencia: e.target.value })} /></Field>
               <Field label="Observações" className="md:col-span-4"><Textarea rows={2} value={r.observacoes} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
             </div>
           )
