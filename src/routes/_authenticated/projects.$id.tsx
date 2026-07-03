@@ -563,7 +563,9 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
                 </div>
                 <p className="mt-1 text-sm line-clamp-1">{ct.esperado || ct.passos || ct.modulo || "(sem descrição)"}</p>
               </div>
-              <Button size="sm" variant="outline">Executar</Button>
+              {ct.status === "Pendente"
+                ? <Button size="sm" variant="outline">Executar</Button>
+                : <Button size="sm" variant="secondary">Editar Execução</Button>}
             </CardContent>
           </Card>
         ))}
