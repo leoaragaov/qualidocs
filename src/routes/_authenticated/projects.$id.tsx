@@ -52,6 +52,7 @@ function ProjectPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [tab, setTab] = useState<Tab>("plano");
 
   const { data, isPending, error } = useQuery(projectDetailQueryOptions(id));
