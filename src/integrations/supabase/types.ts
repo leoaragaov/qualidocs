@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          message: string | null
+          project_id: string
+          requested_role: Database["public"]["Enums"]["project_role"]
+          status: Database["public"]["Enums"]["access_request_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          message?: string | null
+          project_id: string
+          requested_role?: Database["public"]["Enums"]["project_role"]
+          status?: Database["public"]["Enums"]["access_request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          message?: string | null
+          project_id?: string
+          requested_role?: Database["public"]["Enums"]["project_role"]
+          status?: Database["public"]["Enums"]["access_request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: Database["public"]["Enums"]["audit_action"]
@@ -165,6 +212,47 @@ export type Database = {
             columns: ["test_case_id"]
             isOneToOne: false
             referencedRelation: "test_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          data: Json
+          id: string
+          project_id: string | null
+          read_at: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          project_id?: string | null
+          read_at?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          project_id?: string | null
+          read_at?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -549,16 +637,41 @@ export type Database = {
       tms_can_manage: { Args: { _pid: string }; Returns: boolean }
       tms_can_view: { Args: { _pid: string }; Returns: boolean }
       tms_can_write: { Args: { _pid: string }; Returns: boolean }
+      tms_decide_access_request: {
+        Args: { _approve: boolean; _request_id: string }
+        Returns: undefined
+      }
       tms_generate_access_code: { Args: never; Returns: string }
       tms_is_owner: { Args: { _pid: string }; Returns: boolean }
       tms_join_by_code: { Args: { _code: string }; Returns: string }
+      tms_notify_managers: {
+        Args: { _actor: string; _data: Json; _pid: string; _type: string }
+        Returns: undefined
+      }
       tms_owns_project: { Args: { _project_id: string }; Returns: boolean }
+      tms_project_preview: {
+        Args: { _pid: string }
+        Returns: {
+          id: string
+          member_count: number
+          my_membership_status: string
+          my_request_status: string
+          objetivo: string
+          owner_id: string
+          projeto: string
+        }[]
+      }
       tms_project_role: {
         Args: { _pid: string; _uid: string }
         Returns: Database["public"]["Enums"]["project_role"]
       }
+      tms_request_access: {
+        Args: { _message?: string; _pid: string }
+        Returns: string
+      }
     }
     Enums: {
+      access_request_status: "pending" | "approved" | "rejected" | "cancelled"
       audit_action: "create" | "update" | "delete"
       bug_severity: "Alta" | "Média" | "Baixa"
       bug_status: "Aberto" | "Em Correção" | "Corrigido" | "Retestado"
@@ -693,6 +806,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_request_status: ["pending", "approved", "rejected", "cancelled"],
       audit_action: ["create", "update", "delete"],
       bug_severity: ["Alta", "Média", "Baixa"],
       bug_status: ["Aberto", "Em Correção", "Corrigido", "Retestado"],
