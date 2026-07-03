@@ -169,6 +169,106 @@ export type Database = {
           },
         ]
       }
+      project_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          project_id: string
+          role: Database["public"]["Enums"]["project_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          project_id: string
+          role?: Database["public"]["Enums"]["project_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          project_id?: string
+          role?: Database["public"]["Enums"]["project_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_members: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          project_id: string
+          role: Database["public"]["Enums"]["project_role"]
+          status: Database["public"]["Enums"]["member_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          project_id: string
+          role?: Database["public"]["Enums"]["project_role"]
+          status?: Database["public"]["Enums"]["member_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          project_id?: string
+          role?: Database["public"]["Enums"]["project_role"]
+          status?: Database["public"]["Enums"]["member_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           ambiente: string
@@ -443,12 +543,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      tms_can_manage: { Args: { _pid: string }; Returns: boolean }
+      tms_can_view: { Args: { _pid: string }; Returns: boolean }
+      tms_can_write: { Args: { _pid: string }; Returns: boolean }
+      tms_is_owner: { Args: { _pid: string }; Returns: boolean }
       tms_owns_project: { Args: { _project_id: string }; Returns: boolean }
+      tms_project_role: {
+        Args: { _pid: string; _uid: string }
+        Returns: Database["public"]["Enums"]["project_role"]
+      }
     }
     Enums: {
       audit_action: "create" | "update" | "delete"
       bug_severity: "Alta" | "Média" | "Baixa"
       bug_status: "Aberto" | "Em Correção" | "Corrigido" | "Retestado"
+      invitation_status: "pending" | "accepted" | "revoked" | "expired"
+      member_status: "pending" | "accepted"
+      project_role: "owner" | "admin" | "collaborator" | "viewer"
       test_status: "Pendente" | "Passou" | "Falhou" | "Bloqueado"
     }
     CompositeTypes: {
@@ -580,6 +691,9 @@ export const Constants = {
       audit_action: ["create", "update", "delete"],
       bug_severity: ["Alta", "Média", "Baixa"],
       bug_status: ["Aberto", "Em Correção", "Corrigido", "Retestado"],
+      invitation_status: ["pending", "accepted", "revoked", "expired"],
+      member_status: ["pending", "accepted"],
+      project_role: ["owner", "admin", "collaborator", "viewer"],
       test_status: ["Pendente", "Passou", "Falhou", "Bloqueado"],
     },
   },
