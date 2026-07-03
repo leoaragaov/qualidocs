@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { supabase } from "@/integrations/supabase/client";
 import {
   getProjectDetail, updateProject, upsertSchedule, upsertRisk, upsertUserStory,
-  upsertTestCase, setTestCaseStatus, upsertBug, deleteRow, listAudit,
+  upsertTestCase, setTestCaseStatus, executeTestCase, upsertBug, deleteRow, listAudit,
 } from "@/lib/tms.functions";
 import type {
   TmsSchedule, TmsRisk, TmsUserStory, TmsTestCase, TmsBug, TestStatus, BugSeverity, BugStatus,
