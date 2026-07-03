@@ -252,3 +252,14 @@ export const getMyRole = createServerFn({ method: "GET" })
       .maybeSingle();
     return { role: (row?.role ?? null) as ProjectRole | null };
   });
+
+// ---------- join by access code ----------
+export const joinProjectByCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ code: z.string().min(3).max(20) }).parse(d))
+  .handler(async ({ data, context }): Promise<{ project_id: string }> => {
+    const { data: pid, error } = await context.supabase.rpc("tms_join_by_code", { _code: data.code });
+    if (error) throw new Error(error.message);
+    if (!pid) throw new Error("Código inválido");
+    return { project_id: pid as string };
+  });
