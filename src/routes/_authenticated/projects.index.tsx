@@ -341,7 +341,7 @@ function DashboardPage() {
 
 function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string) => void }) {
   return (
-    <Card className="group rounded-xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+    <Card className="group rounded-2xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -379,7 +379,7 @@ function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string
 
 function CollabCard({ p }: { p: MyProjectSummary }) {
   return (
-    <Card className="group rounded-xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+    <Card className="group rounded-2xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-0">{roleLabel(p.my_role)}</Badge>
