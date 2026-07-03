@@ -114,7 +114,7 @@ function ProjectPage() {
 
       <main className="mx-auto max-w-7xl px-6 py-6">
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-          <TabsList className="mb-6 grid w-full grid-cols-3 sm:grid-cols-7">
+          <TabsList className="mb-6 grid w-full grid-cols-4 sm:grid-cols-8">
             <TabsTrigger value="plano">Plano</TabsTrigger>
             <TabsTrigger value="us">US <Badge variant="secondary" className="ml-2">{data.userStories.length}</Badge></TabsTrigger>
             <TabsTrigger value="ct">CT <Badge variant="secondary" className="ml-2">{data.testCases.length}</Badge></TabsTrigger>
@@ -122,6 +122,7 @@ function ProjectPage() {
             <TabsTrigger value="bugs">Bugs <Badge variant="secondary" className="ml-2">{data.bugs.length}</Badge></TabsTrigger>
             <TabsTrigger value="audit">Auditoria</TabsTrigger>
             <TabsTrigger value="matriz">Matriz</TabsTrigger>
+            <TabsTrigger value="membros"><Users className="mr-1 h-3.5 w-3.5" />Membros</TabsTrigger>
           </TabsList>
 
           <TabsContent value="plano"><PlanoTab project={data.project} schedule={data.schedule} risks={data.risks} onChange={invalidate} /></TabsContent>
@@ -131,7 +132,9 @@ function ProjectPage() {
           <TabsContent value="bugs"><BugsTab projectId={id} rows={data.bugs} testCases={data.testCases} onChange={invalidate} /></TabsContent>
           <TabsContent value="audit"><AuditTab projectId={id} /></TabsContent>
           <TabsContent value="matriz"><MatrizTab userStories={data.userStories} testCases={data.testCases} /></TabsContent>
+          <TabsContent value="membros"><MembersTab projectId={id} /></TabsContent>
         </Tabs>
+
       </main>
     </div>
   );
