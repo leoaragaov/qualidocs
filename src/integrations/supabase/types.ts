@@ -272,6 +272,7 @@ export type Database = {
       projects: {
         Row: {
           ambiente: string
+          codigo_acesso: string | null
           created_at: string
           data_criacao: string | null
           id: string
@@ -287,6 +288,7 @@ export type Database = {
         }
         Insert: {
           ambiente?: string
+          codigo_acesso?: string | null
           created_at?: string
           data_criacao?: string | null
           id?: string
@@ -302,6 +304,7 @@ export type Database = {
         }
         Update: {
           ambiente?: string
+          codigo_acesso?: string | null
           created_at?: string
           data_criacao?: string | null
           id?: string
@@ -546,7 +549,9 @@ export type Database = {
       tms_can_manage: { Args: { _pid: string }; Returns: boolean }
       tms_can_view: { Args: { _pid: string }; Returns: boolean }
       tms_can_write: { Args: { _pid: string }; Returns: boolean }
+      tms_generate_access_code: { Args: never; Returns: string }
       tms_is_owner: { Args: { _pid: string }; Returns: boolean }
+      tms_join_by_code: { Args: { _code: string }; Returns: string }
       tms_owns_project: { Args: { _project_id: string }; Returns: boolean }
       tms_project_role: {
         Args: { _pid: string; _uid: string }
