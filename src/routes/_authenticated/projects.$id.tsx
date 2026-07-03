@@ -455,11 +455,8 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
     });
   }, [rows, fStatus, fModulo, fFrom, fTo]);
 
-  // Only Pendente/Falhou go into the executable queue (from the filtered set)
-  const queue = useMemo(
-    () => filtered.filter((r) => r.status === "Pendente" || r.status === "Falhou"),
-    [filtered],
-  );
+  // List obeys filters strictly (no hard-coded pendente/falhou restriction)
+
 
   const summary = useMemo(() => {
     const total = filtered.length;
