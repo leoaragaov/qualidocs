@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound,
-  Search, Users, Crown, Clock, Bell, Check, CheckCheck,
+  Search, Users, Crown, Clock, Bell, Check, CheckCheck, Settings,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,14 +30,15 @@ import {
 const projectsQueryOptions = () => ({
   queryKey: ["my-projects"] as const,
   queryFn: () => listMyProjects(),
-  staleTime: 15_000,
+  staleTime: 5 * 60_000,
+  gcTime: 15 * 60_000,
 });
 
 const notificationsQueryOptions = () => ({
   queryKey: ["notifications"] as const,
   queryFn: () => listNotifications(),
-  staleTime: 15_000,
-  refetchInterval: 30_000,
+  staleTime: 60_000,
+  refetchInterval: 60_000,
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
@@ -187,6 +188,9 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-1">
             <NotificationsBell />
+            <Button variant="ghost" size="sm" asChild title="Minha conta">
+              <Link to="/account"><Settings className="h-4 w-4" /></Link>
+            </Button>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="mr-2 h-4 w-4" /> Sair
             </Button>
