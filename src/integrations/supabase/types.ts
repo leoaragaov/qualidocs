@@ -118,6 +118,57 @@ export type Database = {
           },
         ]
       }
+      historico_execucoes: {
+        Row: {
+          created_at: string
+          evidencia: string
+          executed_at: string
+          executor: string
+          id: string
+          obtido: string
+          project_id: string
+          status: string
+          test_case_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidencia?: string
+          executed_at?: string
+          executor?: string
+          id?: string
+          obtido?: string
+          project_id: string
+          status: string
+          test_case_id: string
+        }
+        Update: {
+          created_at?: string
+          evidencia?: string
+          executed_at?: string
+          executor?: string
+          id?: string
+          obtido?: string
+          project_id?: string
+          status?: string
+          test_case_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_execucoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_execucoes_test_case_id_fkey"
+            columns: ["test_case_id"]
+            isOneToOne: false
+            referencedRelation: "test_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           ambiente: string
@@ -266,6 +317,8 @@ export type Database = {
           ct_id: string | null
           esperado: string | null
           evidencia: string | null
+          executado_em: string | null
+          executor: string | null
           id: string
           id_us: string | null
           massa: string | null
@@ -284,6 +337,8 @@ export type Database = {
           ct_id?: string | null
           esperado?: string | null
           evidencia?: string | null
+          executado_em?: string | null
+          executor?: string | null
           id?: string
           id_us?: string | null
           massa?: string | null
@@ -302,6 +357,8 @@ export type Database = {
           ct_id?: string | null
           esperado?: string | null
           evidencia?: string | null
+          executado_em?: string | null
+          executor?: string | null
           id?: string
           id_us?: string | null
           massa?: string | null
