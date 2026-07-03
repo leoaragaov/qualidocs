@@ -82,17 +82,24 @@ function ProjectPage() {
   if (isPending) return <div className="p-8 text-sm text-muted-foreground">Carregando projeto…</div>;
   if (error || !data) return <div className="p-8 text-sm text-destructive">Erro ao carregar projeto.</div>;
 
+  const code = data.project.codigo_acesso || "";
+  async function copyCode() {
+    if (!code) return;
+    try { await navigator.clipboard.writeText(code); toast.success("Código copiado"); }
+    catch { toast.error("Falha ao copiar"); }
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50/60">
       <Toaster richColors position="top-right" />
-      <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
               <Link to="/projects"><ArrowLeft className="mr-1 h-4 w-4" /> Projetos</Link>
             </Button>
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
               <div>
@@ -102,6 +109,16 @@ function ProjectPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {code && (
+              <button
+                onClick={copyCode}
+                title="Copiar código de acesso"
+                className="group inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono tracking-wider text-slate-700 shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+              >
+                <Copy className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
+                {code}
+              </button>
+            )}
             <Button onClick={handleExport} disabled={exporting}>
               <Download className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar XLSX"}
             </Button>
@@ -112,18 +129,20 @@ function ProjectPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-6 py-8">
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-          <TabsList className="mb-6 grid w-full grid-cols-4 sm:grid-cols-8">
-            <TabsTrigger value="plano">Plano</TabsTrigger>
-            <TabsTrigger value="us">US <Badge variant="secondary" className="ml-2">{data.userStories.length}</Badge></TabsTrigger>
-            <TabsTrigger value="ct">CT <Badge variant="secondary" className="ml-2">{data.testCases.length}</Badge></TabsTrigger>
-            <TabsTrigger value="exec">Execução</TabsTrigger>
-            <TabsTrigger value="bugs">Bugs <Badge variant="secondary" className="ml-2">{data.bugs.length}</Badge></TabsTrigger>
-            <TabsTrigger value="audit">Auditoria</TabsTrigger>
-            <TabsTrigger value="matriz">Matriz</TabsTrigger>
-            <TabsTrigger value="membros"><Users className="mr-1 h-3.5 w-3.5" />Membros</TabsTrigger>
-          </TabsList>
+          <div className="mb-6 overflow-x-auto">
+            <TabsList className="inline-flex h-11 items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 p-1 shadow-sm backdrop-blur">
+              <TabsTrigger value="plano" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Plano</TabsTrigger>
+              <TabsTrigger value="us" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">US <Badge variant="secondary" className="ml-2">{data.userStories.length}</Badge></TabsTrigger>
+              <TabsTrigger value="ct" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">CT <Badge variant="secondary" className="ml-2">{data.testCases.length}</Badge></TabsTrigger>
+              <TabsTrigger value="exec" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Execução</TabsTrigger>
+              <TabsTrigger value="bugs" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bugs <Badge variant="secondary" className="ml-2">{data.bugs.length}</Badge></TabsTrigger>
+              <TabsTrigger value="audit" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Auditoria</TabsTrigger>
+              <TabsTrigger value="matriz" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matriz</TabsTrigger>
+              <TabsTrigger value="membros" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Users className="mr-1 h-3.5 w-3.5" />Membros</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="plano"><PlanoTab project={data.project} schedule={data.schedule} risks={data.risks} onChange={invalidate} /></TabsContent>
           <TabsContent value="us"><UserStoriesTab projectId={id} rows={data.userStories} onChange={invalidate} /></TabsContent>
@@ -174,6 +193,26 @@ function PlanoTab({ project, schedule, risks, onChange }: {
 
   return (
     <div className="space-y-6">
+      {project.codigo_acesso && (
+        <Card className="rounded-xl border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Código de acesso do projeto</p>
+              <p className="mt-1 font-mono text-2xl font-semibold tracking-widest text-primary">{project.codigo_acesso}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Compartilhe com quem deve colaborar neste projeto.</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(project.codigo_acesso); toast.success("Código copiado"); }
+                catch { toast.error("Falha ao copiar"); }
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" /> Copiar código
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Identificação</CardTitle>

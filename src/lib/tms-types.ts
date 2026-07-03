@@ -14,6 +14,7 @@ export type TmsProjectRow = {
   objetivo: string;
   in_scope: string;
   out_of_scope: string;
+  codigo_acesso: string | null;
   created_at: string;
   updated_at: string;
 };
