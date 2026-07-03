@@ -336,7 +336,31 @@ export const listAudit = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as TmsAuditLog[];
+    const logs = (rows ?? []) as TmsAuditLog[];
+
+    // Enrich with actor email via admin lookup (best-effort)
+    const uniqueIds = Array.from(new Set(logs.map((l) => l.actor_id).filter(Boolean))) as string[];
+    const actors: Record<string, string> = {};
+    if (uniqueIds.length) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await Promise.all(
+          uniqueIds.map(async (uid) => {
+            const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+            if (u?.user) {
+              actors[uid] =
+                (u.user.user_metadata?.full_name as string | undefined) ??
+                (u.user.user_metadata?.name as string | undefined) ??
+                u.user.email ??
+                "";
+            }
+          }),
+        );
+      } catch {
+        // Ignore enrichment errors — UI falls back to short id
+      }
+    }
+    return logs.map((l) => ({ ...l, actor_label: l.actor_id ? actors[l.actor_id] ?? "" : "" })) as (TmsAuditLog & { actor_label: string })[];
   });
 
 // ---------- Bulk import (from local draft) ----------
