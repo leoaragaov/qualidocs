@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
-  ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, Bug as BugIcon, History, LogOut,
+  ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
   CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock,
 } from "lucide-react";
 
