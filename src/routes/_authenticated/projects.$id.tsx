@@ -81,7 +81,7 @@ function ProjectPage() {
   }
 
   if (isPending) return <div className="p-8 text-sm text-muted-foreground">Carregando projeto…</div>;
-  if (error || !data) return <div className="p-8 text-sm text-destructive">Erro ao carregar projeto.</div>;
+  if (error || !data) return <RequestAccessScreen projectId={id} onSignOut={signOut} />;
 
   const code = data.project.codigo_acesso || "";
   async function copyCode() {
