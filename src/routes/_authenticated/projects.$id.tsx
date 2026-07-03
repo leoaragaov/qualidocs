@@ -25,8 +25,16 @@ import type {
   TmsSchedule, TmsRisk, TmsUserStory, TmsTestCase, TmsBug, TestStatus, BugSeverity, BugStatus,
 } from "@/lib/tms-types";
 
+const projectDetailQueryOptions = (id: string) => ({
+  queryKey: ["project", id] as const,
+  queryFn: () => getProjectDetail({ data: { id } }),
+  staleTime: 15_000,
+});
+
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [{ title: "Projeto · Citse QA" }] }),
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(projectDetailQueryOptions(params.id)),
   component: ProjectPage,
 });
 
@@ -36,14 +44,10 @@ function ProjectPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const get = useServerFn(getProjectDetail);
   const [exporting, setExporting] = useState(false);
   const [tab, setTab] = useState<Tab>("plano");
 
-  const { data, isPending, error } = useQuery({
-    queryKey: ["project", id],
-    queryFn: () => get({ data: { id } }),
-  });
+  const { data, isPending, error } = useQuery(projectDetailQueryOptions(id));
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["project", id] });
 

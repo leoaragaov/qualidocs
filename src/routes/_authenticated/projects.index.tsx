@@ -15,23 +15,26 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { listProjects, createProject, deleteProject, importDraft } from "@/lib/tms.functions";
 
+const projectsQueryOptions = () => ({
+  queryKey: ["projects"] as const,
+  queryFn: () => listProjects(),
+  staleTime: 30_000,
+});
+
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Meus Projetos · Citse QA" }] }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const list = useServerFn(listProjects);
   const create = useServerFn(createProject);
   const del = useServerFn(deleteProject);
   const doImport = useServerFn(importDraft);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: projects, isPending } = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => list(),
-  });
+  const { data: projects, isPending } = useQuery(projectsQueryOptions());
 
   const [nome, setNome] = useState("");
   const [delId, setDelId] = useState<string | null>(null);
