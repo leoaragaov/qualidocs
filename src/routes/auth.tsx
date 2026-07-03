@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FileSpreadsheet, Mail, Chrome } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar · Citse QA" }] }),
+  head: () => ({ meta: [{ title: "Entrar · QualiDocs" }] }),
   component: AuthPage,
 });
 
@@ -78,7 +78,7 @@ function AuthPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <FileSpreadsheet className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Citse QA</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">QualiDocs</h1>
           <p className="text-sm text-muted-foreground">Framework de gerenciamento de testes</p>
         </div>
 

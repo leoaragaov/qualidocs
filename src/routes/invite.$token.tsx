@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast, Toaster } from "sonner";
 
 export const Route = createFileRoute("/invite/$token")({
-  head: () => ({ meta: [{ title: "Aceitar convite · Citse QA" }] }),
+  head: () => ({ meta: [{ title: "Aceitar convite · QualiDocs" }] }),
   component: InvitePage,
 });
 
@@ -54,7 +54,7 @@ function InvitePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Você recebeu um convite para participar de um projeto no Citse QA.
+            Você recebeu um convite para participar de um projeto no QualiDocs.
           </p>
           {authed === null && <p className="text-sm">Carregando…</p>}
           {authed === false && (

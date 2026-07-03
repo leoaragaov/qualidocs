@@ -40,7 +40,7 @@ function drawFooters(doc: jsPDF) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...GRAY_TEXT);
-    doc.text("Citse QA Framework", 14, h - 6);
+    doc.text("QualiDocs Framework", 14, h - 6);
     doc.text(`Página ${i} de ${pageCount}`, w - 14, h - 6, { align: "right" });
   }
 }
@@ -267,5 +267,5 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
 
   const safeName = (p.projeto || "projeto").replace(/[^\w\-]+/g, "_");
   const stamp = new Date().toISOString().slice(0, 10);
-  doc.save(`Relatorio_QA_${safeName}_${stamp}.pdf`);
+  doc.save(`Relatorio_Executivo_QualiDocs_${safeName}_${stamp}.pdf`);
 }
