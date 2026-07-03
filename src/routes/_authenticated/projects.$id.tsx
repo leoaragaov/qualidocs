@@ -1,0 +1,688 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
+import { toast, Toaster } from "sonner";
+import {
+  ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, Bug as BugIcon, History, LogOut,
+  CheckCircle2, XCircle, ShieldAlert, Circle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  getProjectDetail, updateProject, upsertSchedule, upsertRisk, upsertUserStory,
+  upsertTestCase, setTestCaseStatus, upsertBug, deleteRow, listAudit,
+} from "@/lib/tms.functions";
+import type {
+  TmsSchedule, TmsRisk, TmsUserStory, TmsTestCase, TmsBug, TestStatus, BugSeverity, BugStatus,
+} from "@/lib/tms-types";
+
+export const Route = createFileRoute("/_authenticated/projects/$id")({
+  head: () => ({ meta: [{ title: "Projeto · Citse QA" }] }),
+  component: ProjectPage,
+});
+
+type Tab = "plano" | "us" | "ct" | "exec" | "bugs" | "audit" | "matriz";
+
+function ProjectPage() {
+  const { id } = Route.useParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const get = useServerFn(getProjectDetail);
+  const [exporting, setExporting] = useState(false);
+  const [tab, setTab] = useState<Tab>("plano");
+
+  const { data, isPending, error } = useQuery({
+    queryKey: ["project", id],
+    queryFn: () => get({ data: { id } }),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["project", id] });
+
+  async function signOut() {
+    await qc.cancelQueries();
+    qc.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+
+  async function handleExport() {
+    if (!data) return;
+    try {
+      setExporting(true);
+      const { exportProjectToXlsx } = await import("@/lib/citse-export");
+      await exportProjectToXlsx(data);
+      toast.success("Planilha gerada!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao exportar planilha.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  if (isPending) return <div className="p-8 text-sm text-muted-foreground">Carregando projeto…</div>;
+  if (error || !data) return <div className="p-8 text-sm text-destructive">Erro ao carregar projeto.</div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Toaster richColors position="top-right" />
+      <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/projects"><ArrowLeft className="mr-1 h-4 w-4" /> Projetos</Link>
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <FileSpreadsheet className="h-4 w-4" />
+              </div>
+              <div>
+                <h1 className="text-base font-semibold leading-tight">{data.project.projeto || "(sem nome)"}</h1>
+                <p className="text-xs text-muted-foreground">v{data.project.versao || "—"}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleExport} disabled={exporting}>
+              <Download className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar XLSX"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-6 py-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+          <TabsList className="mb-6 grid w-full grid-cols-3 sm:grid-cols-7">
+            <TabsTrigger value="plano">Plano</TabsTrigger>
+            <TabsTrigger value="us">US <Badge variant="secondary" className="ml-2">{data.userStories.length}</Badge></TabsTrigger>
+            <TabsTrigger value="ct">CT <Badge variant="secondary" className="ml-2">{data.testCases.length}</Badge></TabsTrigger>
+            <TabsTrigger value="exec">Execução</TabsTrigger>
+            <TabsTrigger value="bugs">Bugs <Badge variant="secondary" className="ml-2">{data.bugs.length}</Badge></TabsTrigger>
+            <TabsTrigger value="audit">Auditoria</TabsTrigger>
+            <TabsTrigger value="matriz">Matriz</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="plano"><PlanoTab project={data.project} schedule={data.schedule} risks={data.risks} onChange={invalidate} /></TabsContent>
+          <TabsContent value="us"><UserStoriesTab projectId={id} rows={data.userStories} onChange={invalidate} /></TabsContent>
+          <TabsContent value="ct"><TestCasesTab projectId={id} rows={data.testCases} onChange={invalidate} /></TabsContent>
+          <TabsContent value="exec"><ExecutionTab projectId={id} rows={data.testCases} onChange={invalidate} /></TabsContent>
+          <TabsContent value="bugs"><BugsTab projectId={id} rows={data.bugs} testCases={data.testCases} onChange={invalidate} /></TabsContent>
+          <TabsContent value="audit"><AuditTab projectId={id} /></TabsContent>
+          <TabsContent value="matriz"><MatrizTab userStories={data.userStories} testCases={data.testCases} /></TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}
+
+// ============ Reusable field ============
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`space-y-1.5 ${className ?? ""}`}>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+// ============ Plano tab ============
+function PlanoTab({ project, schedule, risks, onChange }: {
+  project: any; schedule: TmsSchedule[]; risks: TmsRisk[]; onChange: () => void;
+}) {
+  const upd = useServerFn(updateProject);
+  const upSched = useServerFn(upsertSchedule);
+  const upRisk = useServerFn(upsertRisk);
+  const del = useServerFn(deleteRow);
+
+  const [p, setP] = useState(project);
+  useEffect(() => setP(project), [project]);
+
+  const saveM = useMutation({
+    mutationFn: () => upd({ data: {
+      id: p.id, projeto: p.projeto, versao: p.versao, responsavel: p.responsavel, ambiente: p.ambiente,
+      data_criacao: p.data_criacao || null, ultima_revisao: p.ultima_revisao || null,
+      objetivo: p.objetivo, in_scope: p.in_scope, out_of_scope: p.out_of_scope,
+    } }),
+    onSuccess: () => { toast.success("Plano salvo"); onChange(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Identificação</CardTitle>
+          <Button size="sm" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
+            <Save className="mr-2 h-4 w-4" /> Salvar plano
+          </Button>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <Field label="Projeto"><Input value={p.projeto} onChange={(e) => setP({ ...p, projeto: e.target.value })} /></Field>
+          <Field label="Versão do Plano"><Input value={p.versao} onChange={(e) => setP({ ...p, versao: e.target.value })} /></Field>
+          <Field label="Responsável QA"><Input value={p.responsavel} onChange={(e) => setP({ ...p, responsavel: e.target.value })} /></Field>
+          <Field label="Ambiente de Teste"><Input value={p.ambiente} onChange={(e) => setP({ ...p, ambiente: e.target.value })} /></Field>
+          <Field label="Data de Criação"><Input type="date" value={p.data_criacao ?? ""} onChange={(e) => setP({ ...p, data_criacao: e.target.value })} /></Field>
+          <Field label="Última Revisão"><Input type="date" value={p.ultima_revisao ?? ""} onChange={(e) => setP({ ...p, ultima_revisao: e.target.value })} /></Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Objetivo & Escopo</CardTitle></CardHeader>
+        <CardContent className="grid gap-4">
+          <Field label="Objetivo Geral"><Textarea rows={3} value={p.objetivo} onChange={(e) => setP({ ...p, objetivo: e.target.value })} /></Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="IN SCOPE (uma linha por item)"><Textarea rows={5} value={p.in_scope} onChange={(e) => setP({ ...p, in_scope: e.target.value })} /></Field>
+            <Field label="OUT OF SCOPE (uma linha por item)"><Textarea rows={5} value={p.out_of_scope} onChange={(e) => setP({ ...p, out_of_scope: e.target.value })} /></Field>
+          </div>
+        </CardContent>
+      </Card>
+
+      <RowEditor
+        title="Cronograma"
+        rows={schedule}
+        newRow={() => ({ project_id: p.id, ordem: schedule.length, fase: "", atividade: "", inicio: null, fim: null, responsavel: "", status: "A Fazer" }) as TmsSchedule}
+        onSave={async (r) => { await upSched({ data: r as any }); onChange(); }}
+        onDelete={async (rid) => { await del({ data: { table: "schedule_items", id: rid } }); onChange(); }}
+        render={(r, upd) => (
+          <div className="grid gap-2 md:grid-cols-6">
+            <Input placeholder="Fase" value={r.fase} onChange={(e) => upd({ ...r, fase: e.target.value })} />
+            <Input placeholder="Atividade" value={r.atividade} onChange={(e) => upd({ ...r, atividade: e.target.value })} className="md:col-span-2" />
+            <Input type="date" value={r.inicio ?? ""} onChange={(e) => upd({ ...r, inicio: e.target.value || null })} />
+            <Input type="date" value={r.fim ?? ""} onChange={(e) => upd({ ...r, fim: e.target.value || null })} />
+            <Input placeholder="Responsável" value={r.responsavel} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+          </div>
+        )}
+      />
+
+      <RowEditor
+        title="Riscos"
+        rows={risks}
+        newRow={() => ({ project_id: p.id, ordem: risks.length, risco_id: "", descricao: "", probabilidade: "Média", impacto: "Médio", mitigacao: "", responsavel: "" }) as TmsRisk}
+        onSave={async (r) => { await upRisk({ data: r as any }); onChange(); }}
+        onDelete={async (rid) => { await del({ data: { table: "risks", id: rid } }); onChange(); }}
+        render={(r, upd) => (
+          <div className="grid gap-2 md:grid-cols-6">
+            <Input placeholder="ID" value={r.risco_id} onChange={(e) => upd({ ...r, risco_id: e.target.value })} />
+            <Textarea placeholder="Descrição" rows={2} value={r.descricao} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
+            <Input placeholder="Probabilidade" value={r.probabilidade} onChange={(e) => upd({ ...r, probabilidade: e.target.value })} />
+            <Input placeholder="Impacto" value={r.impacto} onChange={(e) => upd({ ...r, impacto: e.target.value })} />
+            <Input placeholder="Responsável" value={r.responsavel} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+            <Textarea placeholder="Mitigação" rows={2} value={r.mitigacao} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
+// Reusable inline row editor with local state per row
+function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onDelete, render }: {
+  title: string;
+  rows: T[];
+  newRow: () => T;
+  onSave: (r: T) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  render: (r: T, upd: (r: T) => void) => React.ReactNode;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, T>>({});
+  const [newDraft, setNewDraft] = useState<T | null>(null);
+
+  const setDraft = (id: string, r: T) => setDrafts((d) => ({ ...d, [id]: r }));
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>{title}</CardTitle>
+        <Button size="sm" variant="outline" onClick={() => setNewDraft(newRow())}>
+          <Plus className="mr-1 h-4 w-4" /> Adicionar
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {rows.map((r) => {
+          const draft = drafts[r.id!] ?? r;
+          const dirty = JSON.stringify(draft) !== JSON.stringify(r);
+          return (
+            <div key={r.id} className="rounded-md border bg-muted/30 p-3 space-y-2">
+              {render(draft, (n) => setDraft(r.id!, n))}
+              <div className="flex justify-end gap-2">
+                {dirty && (
+                  <Button size="sm" onClick={async () => { await onSave(draft); setDrafts((d) => { const nd = { ...d }; delete nd[r.id!]; return nd; }); toast.success("Salvo"); }}>
+                    <Save className="mr-1 h-4 w-4" /> Salvar
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={async () => { if (confirm("Excluir?")) { await onDelete(r.id!); toast.success("Excluído"); } }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+        {newDraft && (
+          <div className="rounded-md border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
+            {render(newDraft, setNewDraft)}
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setNewDraft(null)}>Cancelar</Button>
+              <Button size="sm" onClick={async () => { await onSave(newDraft); setNewDraft(null); toast.success("Adicionado"); }}>
+                <Save className="mr-1 h-4 w-4" /> Salvar
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============ User Stories ============
+function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows: TmsUserStory[]; onChange: () => void }) {
+  const up = useServerFn(upsertUserStory);
+  const del = useServerFn(deleteRow);
+  const [filter, setFilter] = useState<string>("all");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Visualizar:</Label>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="h-9 w-[240px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas ({rows.length})</SelectItem>
+              {rows.map((u, i) => <SelectItem key={u.id} value={u.id}>{u.us_id || `US #${i + 1}`}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <RowEditor
+        title=""
+        rows={rows}
+        newRow={() => ({ project_id: projectId, us_id: "", modulo: "", ator: "", story: "", criterio1: "", criterio2: "", prioridade: "Média", sprint: "", status: "A Documentar" }) as TmsUserStory}
+        onSave={async (r) => { await up({ data: r as any }); onChange(); }}
+        onDelete={async (id) => { await del({ data: { table: "user_stories", id } }); onChange(); }}
+        render={(r, upd) => (
+          (filter === "all" || filter === r.id || !r.id) && (
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label="ID_US"><Input placeholder="US-MOD-001" value={r.us_id} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
+              <Field label="Módulo"><Input value={r.modulo} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Ator / Perfil"><Input value={r.ator} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
+              <Field label="User Story (Eu como… Quero… Para que…)" className="md:col-span-3">
+                <Textarea rows={3} value={r.story} onChange={(e) => upd({ ...r, story: e.target.value })} />
+              </Field>
+              <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={r.criterio1} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
+              <Field label="Critério de Aceitação 2" className="md:col-span-3"><Textarea rows={2} value={r.criterio2} onChange={(e) => upd({ ...r, criterio2: e.target.value })} /></Field>
+              <Field label="Prioridade"><Input value={r.prioridade} onChange={(e) => upd({ ...r, prioridade: e.target.value })} /></Field>
+              <Field label="Sprint / Release"><Input value={r.sprint} onChange={(e) => upd({ ...r, sprint: e.target.value })} /></Field>
+              <Field label="Status"><Input value={r.status} onChange={(e) => upd({ ...r, status: e.target.value })} /></Field>
+            </div>
+          )
+        )}
+      />
+    </div>
+  );
+}
+
+// ============ Test Cases ============
+function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: TmsTestCase[]; onChange: () => void }) {
+  const up = useServerFn(upsertTestCase);
+  const del = useServerFn(deleteRow);
+  const [filter, setFilter] = useState<string>("all");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Visualizar:</Label>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="h-9 w-[240px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos ({rows.length})</SelectItem>
+              {rows.map((c, i) => <SelectItem key={c.id} value={c.id}>{c.ct_id || `CT #${i + 1}`}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <RowEditor
+        title=""
+        rows={rows}
+        newRow={() => ({ project_id: projectId, ct_id: "", id_us: "", modulo: "", tipo: "Funcional", precondicoes: "", massa: "", passos: "", esperado: "", obtido: "", status: "Pendente", evidencia: "", observacoes: "" }) as TmsTestCase}
+        onSave={async (r) => { await up({ data: r as any }); onChange(); }}
+        onDelete={async (id) => { await del({ data: { table: "test_cases", id } }); onChange(); }}
+        render={(r, upd) => (
+          (filter === "all" || filter === r.id || !r.id) && (
+            <div className="grid gap-3 md:grid-cols-4">
+              <Field label="ID_CT"><Input placeholder="CT-MOD-001" value={r.ct_id} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
+              <Field label="ID_US"><Input placeholder="US-MOD-001" value={r.id_us} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
+              <Field label="Módulo"><Input value={r.modulo} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Tipo"><Input value={r.tipo} onChange={(e) => upd({ ...r, tipo: e.target.value })} /></Field>
+              <Field label="Pré-condições" className="md:col-span-2"><Textarea rows={3} value={r.precondicoes} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
+              <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={r.massa} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
+              <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={r.passos} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
+              <Field label="Resultado Esperado" className="md:col-span-2"><Textarea rows={4} value={r.esperado} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
+              <Field label="Resultado Obtido" className="md:col-span-2"><Textarea rows={2} value={r.obtido} onChange={(e) => upd({ ...r, obtido: e.target.value })} /></Field>
+              <Field label="Status">
+                <Select value={r.status} onValueChange={(v) => upd({ ...r, status: v as TestStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(["Pendente", "Passou", "Falhou", "Bloqueado"] as TestStatus[]).map((s) =>
+                      <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Evidência"><Input value={r.evidencia} onChange={(e) => upd({ ...r, evidencia: e.target.value })} /></Field>
+              <Field label="Observações" className="md:col-span-4"><Textarea rows={2} value={r.observacoes} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
+            </div>
+          )
+        )}
+      />
+    </div>
+  );
+}
+
+// ============ Execution ============
+function statusBadge(s: TestStatus) {
+  const map: Record<TestStatus, { c: string; i: React.ReactNode }> = {
+    "Pendente": { c: "bg-muted text-muted-foreground", i: <Circle className="h-3 w-3" /> },
+    "Passou": { c: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300", i: <CheckCircle2 className="h-3 w-3" /> },
+    "Falhou": { c: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300", i: <XCircle className="h-3 w-3" /> },
+    "Bloqueado": { c: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300", i: <ShieldAlert className="h-3 w-3" /> },
+  };
+  const it = map[s];
+  return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${it.c}`}>{it.i} {s}</span>;
+}
+
+function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: TmsTestCase[]; onChange: () => void }) {
+  const setStatus = useServerFn(setTestCaseStatus);
+  const upBug = useServerFn(upsertBug);
+  const [bugDialog, setBugDialog] = useState<{ ct: TmsTestCase } | null>(null);
+
+  const summary = useMemo(() => {
+    const total = rows.length;
+    const c = (s: TestStatus) => rows.filter((r) => r.status === s).length;
+    return { total, passou: c("Passou"), falhou: c("Falhou"), bloq: c("Bloqueado"), pend: c("Pendente") };
+  }, [rows]);
+  const pct = summary.total ? Math.round(((summary.passou) / summary.total) * 100) : 0;
+
+  async function mark(ct: TmsTestCase, s: TestStatus) {
+    await setStatus({ data: { id: ct.id, status: s } });
+    onChange();
+    if (s === "Falhou") setBugDialog({ ct });
+    else toast.success(`Marcado como ${s}`);
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle>Resumo da execução</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-5 text-center">
+          <Stat label="Total" value={summary.total} />
+          <Stat label="Passou" value={summary.passou} tone="ok" />
+          <Stat label="Falhou" value={summary.falhou} tone="bad" />
+          <Stat label="Bloqueado" value={summary.bloq} tone="warn" />
+          <Stat label="% Sucesso" value={`${pct}%`} tone="ok" />
+        </CardContent>
+      </Card>
+
+      {rows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste. Cadastre em "CT" primeiro.</CardContent></Card>}
+
+      <div className="space-y-2">
+        {rows.map((ct) => (
+          <Card key={ct.id}>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-muted-foreground">{ct.ct_id || "(sem ID)"}</span>
+                  {statusBadge(ct.status)}
+                </div>
+                <p className="mt-1 text-sm line-clamp-1">{ct.esperado || ct.passos || ct.modulo || "(sem descrição)"}</p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <Button size="sm" variant={ct.status === "Passou" ? "default" : "outline"} onClick={() => mark(ct, "Passou")}><CheckCircle2 className="mr-1 h-4 w-4" /> Passou</Button>
+                <Button size="sm" variant={ct.status === "Falhou" ? "destructive" : "outline"} onClick={() => mark(ct, "Falhou")}><XCircle className="mr-1 h-4 w-4" /> Falhou</Button>
+                <Button size="sm" variant={ct.status === "Bloqueado" ? "secondary" : "outline"} onClick={() => mark(ct, "Bloqueado")}><ShieldAlert className="mr-1 h-4 w-4" /> Bloqueado</Button>
+                <Button size="sm" variant="ghost" onClick={() => mark(ct, "Pendente")}><Circle className="mr-1 h-4 w-4" /> Pendente</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <BugDialog
+        open={!!bugDialog}
+        ct={bugDialog?.ct ?? null}
+        projectId={projectId}
+        onClose={() => setBugDialog(null)}
+        onSave={async (b) => { await upBug({ data: b as any }); onChange(); setBugDialog(null); toast.success("Bug registrado"); }}
+      />
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "ok" | "bad" | "warn" }) {
+  const cls = tone === "ok" ? "text-green-600" : tone === "bad" ? "text-red-600" : tone === "warn" ? "text-amber-600" : "text-foreground";
+  return (
+    <div className="rounded-md border bg-card p-3">
+      <div className={`text-2xl font-bold ${cls}`}>{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+// ============ Bugs ============
+function BugDialog({ open, ct, projectId, onClose, onSave }: {
+  open: boolean; ct: TmsTestCase | null; projectId: string;
+  onClose: () => void; onSave: (b: Partial<TmsBug>) => Promise<void>;
+}) {
+  const [b, setB] = useState<Partial<TmsBug>>({});
+  useEffect(() => {
+    if (ct) setB({
+      project_id: projectId, test_case_id: ct.id,
+      bug_id: `BUG-${Date.now().toString(36).toUpperCase().slice(-5)}`,
+      titulo: `Falha em ${ct.ct_id || "CT"}`,
+      severidade: "Média", status: "Aberto",
+      passos: ct.passos, massa: ct.massa,
+      comportamento_atual: ct.obtido, comportamento_esperado: ct.esperado,
+    });
+  }, [ct, projectId]);
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><BugIcon className="h-5 w-5 text-red-600" /> Registrar Bug</DialogTitle></DialogHeader>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="ID do Bug"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+          <Field label="Severidade">
+            <Select value={b.severidade as string} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label="Título" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+          <Field label="Passos (do CT)" className="md:col-span-2"><Textarea rows={3} value={b.passos ?? ""} onChange={(e) => setB({ ...b, passos: e.target.value })} /></Field>
+          <Field label="Massa de Dados (do CT)" className="md:col-span-2"><Textarea rows={2} value={b.massa ?? ""} onChange={(e) => setB({ ...b, massa: e.target.value })} /></Field>
+          <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+          <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+          <Field label="Status">
+            <Select value={b.status as string} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{(["Aberto", "Em Correção", "Corrigido", "Retestado"] as BugStatus[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSave(b)}><Save className="mr-2 h-4 w-4" /> Registrar Bug</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BugsTab({ projectId, rows, testCases, onChange }: {
+  projectId: string; rows: TmsBug[]; testCases: TmsTestCase[]; onChange: () => void;
+}) {
+  const up = useServerFn(upsertBug);
+  const del = useServerFn(deleteRow);
+  const [newDialog, setNewDialog] = useState(false);
+  const [editing, setEditing] = useState<TmsBug | null>(null);
+  const ctMap = useMemo(() => Object.fromEntries(testCases.map((c) => [c.id, c.ct_id])), [testCases]);
+
+  const sevColor: Record<BugSeverity, string> = {
+    "Alta": "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+    "Média": "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+    "Baixa": "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setNewDialog(true)}><Plus className="mr-2 h-4 w-4" /> Novo Bug</Button>
+      </div>
+      {rows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum bug registrado.</CardContent></Card>}
+      {rows.map((b) => (
+        <Card key={b.id}>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs text-muted-foreground">{b.bug_id}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sevColor[b.severidade]}`}>{b.severidade}</span>
+                <Badge variant={b.status === "Corrigido" || b.status === "Retestado" ? "secondary" : "default"}>{b.status}</Badge>
+                {b.test_case_id && <span className="text-xs text-muted-foreground">CT: {ctMap[b.test_case_id] ?? "—"}</span>}
+              </div>
+              <p className="mt-1 text-sm font-medium">{b.titulo || "(sem título)"}</p>
+              <p className="text-xs text-muted-foreground line-clamp-1">{b.comportamento_atual}</p>
+            </div>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" onClick={() => setEditing(b)}>Editar</Button>
+              <Button size="sm" variant="ghost" onClick={async () => { if (confirm("Excluir?")) { await del({ data: { table: "bugs", id: b.id } }); onChange(); toast.success("Excluído"); } }}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {newDialog && (
+        <BugDialog
+          open
+          ct={null}
+          projectId={projectId}
+          onClose={() => setNewDialog(false)}
+          onSave={async (b) => { await up({ data: { ...b, project_id: projectId, bug_id: b.bug_id || `BUG-${Date.now().toString(36).slice(-5)}` } as any }); onChange(); setNewDialog(false); toast.success("Bug criado"); }}
+        />
+      )}
+      {editing && (
+        <Dialog open onOpenChange={(o) => !o && setEditing(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader><DialogTitle>Editar bug {editing.bug_id}</DialogTitle></DialogHeader>
+            <EditBugForm bug={editing} onSave={async (b) => { await up({ data: b as any }); onChange(); setEditing(null); toast.success("Bug atualizado"); }} onCancel={() => setEditing(null)} />
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function EditBugForm({ bug, onSave, onCancel }: { bug: TmsBug; onSave: (b: TmsBug) => Promise<void>; onCancel: () => void }) {
+  const [b, setB] = useState<TmsBug>(bug);
+  return (
+    <>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="ID"><Input value={b.bug_id} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+        <Field label="Severidade">
+          <Select value={b.severidade} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Título" className="md:col-span-2"><Input value={b.titulo} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+        <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+        <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+        <Field label="Status">
+          <Select value={b.status} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{(["Aberto", "Em Correção", "Corrigido", "Retestado"] as BugStatus[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+      </div>
+      <DialogFooter className="mt-4">
+        <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+        <Button onClick={() => onSave(b)}><Save className="mr-2 h-4 w-4" /> Salvar</Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+// ============ Audit ============
+function AuditTab({ projectId }: { projectId: string }) {
+  const fn = useServerFn(listAudit);
+  const { data, isPending } = useQuery({ queryKey: ["audit", projectId], queryFn: () => fn({ data: { project_id: projectId } }) });
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="flex items-center gap-2"><History className="h-4 w-4" /> Trilha de Auditoria</CardTitle></CardHeader>
+      <CardContent>
+        {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
+        {data?.length === 0 && <p className="text-sm text-muted-foreground">Sem atividade registrada.</p>}
+        <div className="space-y-1">
+          {data?.map((log) => (
+            <div key={log.id} className="flex items-center gap-2 border-b py-2 text-sm last:border-0">
+              <Badge variant={log.action === "delete" ? "destructive" : log.action === "create" ? "default" : "secondary"}>{log.action}</Badge>
+              <span className="font-mono text-xs text-muted-foreground">{log.entity}</span>
+              <span className="flex-1 truncate text-xs text-muted-foreground">{log.entity_id}</span>
+              <span className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============ Matriz ============
+function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; testCases: TmsTestCase[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Matriz de Rastreabilidade</CardTitle>
+        <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID_US dos casos de teste.</p>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="bg-muted">
+              <th className="border p-2 text-left">ID_US</th>
+              <th className="border p-2 text-left">Módulo</th>
+              {testCases.map((c) => <th key={c.id} className="border p-2 text-center">{c.ct_id || "?"}</th>)}
+              <th className="border p-2 text-center">Cobertura</th>
+            </tr>
+          </thead>
+          <tbody>
+            {userStories.map((us) => {
+              const cover = testCases.map((ct) => ct.id_us.split(/[,;\s]+/).includes(us.us_id));
+              const total = cover.filter(Boolean).length;
+              const pct = testCases.length ? Math.round((total / testCases.length) * 100) : 0;
+              return (
+                <tr key={us.id}>
+                  <td className="border p-2 font-medium">{us.us_id}</td>
+                  <td className="border p-2">{us.modulo}</td>
+                  {cover.map((b, j) => <td key={j} className="border p-2 text-center">{b ? "✅" : "🔲"}</td>)}
+                  <td className={`border p-2 text-center font-semibold ${total ? "text-green-600" : "text-red-600"}`}>{pct}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
