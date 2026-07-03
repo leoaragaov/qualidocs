@@ -15,8 +15,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { listProjects, createProject, deleteProject, importDraft } from "@/lib/tms.functions";
 
+const projectsQueryOptions = () => ({
+  queryKey: ["projects"] as const,
+  queryFn: () => listProjects(),
+  staleTime: 30_000,
+});
+
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Meus Projetos · Citse QA" }] }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
 });
 
