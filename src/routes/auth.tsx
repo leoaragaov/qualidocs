@@ -170,6 +170,46 @@ function AuthPage() {
           <Link to="/" className="hover:underline">← Voltar</Link>
         </p>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={(o) => { setForgotOpen(o); if (!o) { setForgotSent(false); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Recuperar senha</DialogTitle>
+            <DialogDescription>
+              Informe seu e-mail e enviaremos um link para você criar uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          {forgotSent ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-emerald-800">
+              ✅ Link enviado para <b>{forgotEmail}</b>. Verifique também sua pasta de spam.
+            </div>
+          ) : (
+            <div className="space-y-2 py-2">
+              <Label className="text-xs text-muted-foreground">E-mail cadastrado</Label>
+              <Input
+                autoFocus
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="voce@empresa.com"
+                onKeyDown={(e) => { if (e.key === "Enter" && forgotEmail.trim()) sendResetEmail(); }}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            {forgotSent ? (
+              <Button onClick={() => setForgotOpen(false)}>Ok</Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setForgotOpen(false)}>Cancelar</Button>
+                <Button onClick={sendResetEmail} disabled={forgotSending || !forgotEmail.trim()}>
+                  {forgotSending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando…</> : "Enviar link"}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
