@@ -24,7 +24,8 @@ import {
 } from "@/lib/tms.functions";
 import {
   listMembers, listInvitations, inviteMember, updateMemberRole, removeMember,
-  revokeInvitation, resendInvitation, type ProjectRole,
+  revokeInvitation, resendInvitation, listAccessRequests, decideAccessRequest,
+  getProjectPreview, requestProjectAccess, type ProjectRole,
 } from "@/lib/members.functions";
 import type {
   TmsSchedule, TmsRisk, TmsUserStory, TmsTestCase, TmsBug, TestStatus, BugSeverity, BugStatus,
