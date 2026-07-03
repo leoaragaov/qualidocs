@@ -216,6 +216,73 @@ export const setTestCaseStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Execute a test case: updates status/obtido/evidencia + records history row with executor & timestamp
+export const executeTestCase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["Passou", "Falhou", "Bloqueado", "Pendente"]),
+      obtido: z.string().max(4000).default(""),
+      evidencia: z.string().max(500).default(""),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
+    const executor =
+      (context.claims as any)?.email ??
+      (context.claims as any)?.user_metadata?.full_name ??
+      (context.claims as any)?.user_metadata?.name ??
+      "";
+    const now = new Date().toISOString();
+
+    // Get project_id first (needed for history row)
+    const { data: ct, error: getErr } = await sb
+      .from("test_cases")
+      .select("project_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (getErr || !ct) throw new Error(getErr?.message ?? "CT não encontrado");
+
+    const { error: updErr } = await sb
+      .from("test_cases")
+      .update({
+        status: data.status,
+        obtido: data.obtido,
+        evidencia: data.evidencia,
+        executado_em: now,
+        executor,
+      })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+
+    const { error: histErr } = await sb.from("historico_execucoes").insert({
+      project_id: ct.project_id,
+      test_case_id: data.id,
+      status: data.status,
+      obtido: data.obtido,
+      evidencia: data.evidencia,
+      executor,
+      executed_at: now,
+    });
+    if (histErr) throw new Error(histErr.message);
+
+    return { ok: true, executado_em: now, executor };
+  });
+
+export const listExecHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ project_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("historico_execucoes")
+      .select("*")
+      .eq("project_id", data.project_id)
+      .order("executed_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as TmsExecHistory[];
+  });
+
 // ---------- Bugs ----------
 
 const bugSchema = z.object({
