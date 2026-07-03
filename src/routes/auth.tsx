@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileSpreadsheet, Mail, Chrome } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileSpreadsheet, Mail, Chrome, KeyRound, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar · QualiDocs" }] }),
@@ -20,6 +21,29 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+
+  async function sendResetEmail() {
+    if (!forgotEmail.trim()) return;
+    setForgotSending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        console.error("[QualiDocs] Reset e-mail:", error);
+        toast.error(error.message);
+        return;
+      }
+      setForgotSent(true);
+      toast.success("E-mail enviado! Verifique sua caixa de entrada.");
+    } finally {
+      setForgotSending(false);
+    }
+  }
 
   useEffect(() => {
     const redirectAfterAuth = () => {
@@ -124,6 +148,13 @@ function AuthPage() {
                 <Button className="w-full" onClick={signIn} disabled={loading || !email || !password}>
                   <Mail className="mr-2 h-4 w-4" /> Entrar
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { setForgotSent(false); setForgotEmail(email); setForgotOpen(true); }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-primary hover:underline transition-colors duration-200"
+                >
+                  Esqueceu a senha?
+                </button>
               </TabsContent>
               <TabsContent value="signup" className="space-y-3 pt-3">
                 <Field label="E-mail"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
@@ -139,6 +170,46 @@ function AuthPage() {
           <Link to="/" className="hover:underline">← Voltar</Link>
         </p>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={(o) => { setForgotOpen(o); if (!o) { setForgotSent(false); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Recuperar senha</DialogTitle>
+            <DialogDescription>
+              Informe seu e-mail e enviaremos um link para você criar uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          {forgotSent ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-emerald-800">
+              ✅ Link enviado para <b>{forgotEmail}</b>. Verifique também sua pasta de spam.
+            </div>
+          ) : (
+            <div className="space-y-2 py-2">
+              <Label className="text-xs text-muted-foreground">E-mail cadastrado</Label>
+              <Input
+                autoFocus
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="voce@empresa.com"
+                onKeyDown={(e) => { if (e.key === "Enter" && forgotEmail.trim()) sendResetEmail(); }}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            {forgotSent ? (
+              <Button onClick={() => setForgotOpen(false)}>Ok</Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setForgotOpen(false)}>Cancelar</Button>
+                <Button onClick={sendResetEmail} disabled={forgotSending || !forgotEmail.trim()}>
+                  {forgotSending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando…</> : "Enviar link"}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
-  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock,
+  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock, Settings,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,8 @@ import type {
 const projectDetailQueryOptions = (id: string) => ({
   queryKey: ["project", id] as const,
   queryFn: () => getProjectDetail({ data: { id } }),
-  staleTime: 15_000,
+  staleTime: 5 * 60_000,
+  gcTime: 15 * 60_000,
 });
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
@@ -141,6 +142,9 @@ function ProjectPage() {
             </Button>
             <Button onClick={handleExportPdf} disabled={exportingPdf}>
               <FileText className="mr-2 h-4 w-4" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
+            </Button>
+            <Button variant="ghost" size="sm" asChild title="Minha conta">
+              <Link to="/account"><Settings className="h-4 w-4" /></Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
