@@ -270,5 +270,3 @@ function DashboardPage() {
     </div>
   );
 }
-// Suppress unused-var warnings for Copy (kept for future use in this file).
-export const __copyIcon = Copy;
