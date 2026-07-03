@@ -541,12 +541,12 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
       </div>
 
       {rows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste. Cadastre em "CT" primeiro.</CardContent></Card>}
-      {rows.length > 0 && queue.length === 0 && (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">✨ Sem testes pendentes ou reprovados no filtro atual.</CardContent></Card>
+      {rows.length > 0 && filtered.length === 0 && (
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste encontrado para os filtros selecionados.</CardContent></Card>
       )}
 
       <div className="space-y-2">
-        {queue.map((ct) => (
+        {filtered.map((ct) => (
           <Card key={ct.id} className="cursor-pointer transition-colors hover:bg-accent/50" onClick={() => openTest(ct)}>
             <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0 flex-1">
