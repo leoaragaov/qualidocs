@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, Bug as BugIcon, History, LogOut,
-  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw,
+  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
