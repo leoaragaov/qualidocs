@@ -216,8 +216,14 @@ function PlanoTab({ project, schedule, risks, onChange }: {
           <div className="grid gap-2 md:grid-cols-6">
             <Input placeholder="ID" value={r.risco_id} onChange={(e) => upd({ ...r, risco_id: e.target.value })} />
             <Textarea placeholder="Descrição" rows={2} value={r.descricao} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
-            <Input placeholder="Probabilidade" value={r.probabilidade} onChange={(e) => upd({ ...r, probabilidade: e.target.value })} />
-            <Input placeholder="Impacto" value={r.impacto} onChange={(e) => upd({ ...r, impacto: e.target.value })} />
+            <Select value={r.probabilidade} onValueChange={(v) => upd({ ...r, probabilidade: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={r.impacto} onValueChange={(v) => upd({ ...r, impacto: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{["Alto", "Medio", "Baixo"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
             <Input placeholder="Responsável" value={r.responsavel} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
             <Textarea placeholder="Mitigação" rows={2} value={r.mitigacao} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
           </div>
@@ -322,9 +328,23 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
               </Field>
               <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={r.criterio1} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
               <Field label="Critério de Aceitação 2" className="md:col-span-3"><Textarea rows={2} value={r.criterio2} onChange={(e) => upd({ ...r, criterio2: e.target.value })} /></Field>
-              <Field label="Prioridade"><Input value={r.prioridade} onChange={(e) => upd({ ...r, prioridade: e.target.value })} /></Field>
+              <Field label="Prioridade">
+                <Select value={r.prioridade} onValueChange={(v) => upd({ ...r, prioridade: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Sprint / Release"><Input value={r.sprint} onChange={(e) => upd({ ...r, sprint: e.target.value })} /></Field>
-              <Field label="Status"><Input value={r.status} onChange={(e) => upd({ ...r, status: e.target.value })} /></Field>
+              <Field label="Status">
+                <Select value={r.status} onValueChange={(v) => upd({ ...r, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["A Documentar", "Em Desenvolvimento", "Pronto para Teste", "Em Teste", "Aprovado", "Rejeitado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
           )
         )}
@@ -365,7 +385,14 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
               <Field label="ID_CT"><Input placeholder="CT-MOD-001" value={r.ct_id} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
               <Field label="ID_US"><Input placeholder="US-MOD-001" value={r.id_us} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
               <Field label="Módulo"><Input value={r.modulo} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
-              <Field label="Tipo"><Input value={r.tipo} onChange={(e) => upd({ ...r, tipo: e.target.value })} /></Field>
+              <Field label="Tipo">
+                <Select value={r.tipo} onValueChange={(v) => upd({ ...r, tipo: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Funcional", "Não Funcional", "Integração", "Usabilidade", "Performance", "Segurança", "Regressão", "Smoke"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Pré-condições" className="md:col-span-2"><Textarea rows={3} value={r.precondicoes} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
               <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={r.massa} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
               <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={r.passos} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
