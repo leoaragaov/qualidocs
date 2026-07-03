@@ -73,6 +73,20 @@ export type TmsTestCase = {
   status: TestStatus;
   evidencia: string;
   observacoes: string;
+  executado_em: string | null;
+  executor: string;
+};
+
+export type TmsExecHistory = {
+  id: string;
+  project_id: string;
+  test_case_id: string;
+  status: string;
+  obtido: string;
+  evidencia: string;
+  executor: string;
+  executed_at: string;
+  created_at: string;
 };
 
 export type BugSeverity = "Alta" | "Média" | "Baixa";
