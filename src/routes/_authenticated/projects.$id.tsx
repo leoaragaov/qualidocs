@@ -81,6 +81,21 @@ function ProjectPage() {
     }
   }
 
+  async function handleExportPdf() {
+    if (!data) return;
+    try {
+      setExportingPdf(true);
+      const { exportProjectToPdf } = await import("@/lib/pdf-export");
+      await exportProjectToPdf(data);
+      toast.success("PDF gerado!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao exportar PDF.");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   if (isPending) return <div className="p-8 text-sm text-muted-foreground">Carregando projeto…</div>;
   if (error || !data) return <RequestAccessScreen projectId={id} onSignOut={signOut} />;
 
