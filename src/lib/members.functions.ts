@@ -280,7 +280,7 @@ export const requestProjectAccess = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: id, error } = await context.supabase.rpc("tms_request_access", {
       _pid: data.project_id,
-      _message: data.message ?? null,
+      _message: data.message ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { id: id as string };
