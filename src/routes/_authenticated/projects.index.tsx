@@ -33,6 +33,7 @@ function DashboardPage() {
   const create = useServerFn(createProject);
   const del = useServerFn(deleteProject);
   const doImport = useServerFn(importDraft);
+  const join = useServerFn(joinProjectByCode);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -42,6 +43,8 @@ function DashboardPage() {
   const [delId, setDelId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
