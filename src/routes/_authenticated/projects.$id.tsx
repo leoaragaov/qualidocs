@@ -136,8 +136,11 @@ function ProjectPage() {
                 {code}
               </button>
             )}
-            <Button onClick={handleExport} disabled={exporting}>
-              <Download className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar XLSX"}
+            <Button onClick={handleExport} disabled={exporting} variant="outline">
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar XLSX"}
+            </Button>
+            <Button onClick={handleExportPdf} disabled={exportingPdf}>
+              <FileText className="mr-2 h-4 w-4" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
             </Button>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
