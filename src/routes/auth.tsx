@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileSpreadsheet, Mail, Chrome } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileSpreadsheet, Mail, Chrome, KeyRound, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar · QualiDocs" }] }),
@@ -20,6 +21,29 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+
+  async function sendResetEmail() {
+    if (!forgotEmail.trim()) return;
+    setForgotSending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        console.error("[QualiDocs] Reset e-mail:", error);
+        toast.error(error.message);
+        return;
+      }
+      setForgotSent(true);
+      toast.success("E-mail enviado! Verifique sua caixa de entrada.");
+    } finally {
+      setForgotSending(false);
+    }
+  }
 
   useEffect(() => {
     const redirectAfterAuth = () => {
@@ -124,6 +148,13 @@ function AuthPage() {
                 <Button className="w-full" onClick={signIn} disabled={loading || !email || !password}>
                   <Mail className="mr-2 h-4 w-4" /> Entrar
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { setForgotSent(false); setForgotEmail(email); setForgotOpen(true); }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-primary hover:underline transition-colors duration-200"
+                >
+                  Esqueceu a senha?
+                </button>
               </TabsContent>
               <TabsContent value="signup" className="space-y-3 pt-3">
                 <Field label="E-mail"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
