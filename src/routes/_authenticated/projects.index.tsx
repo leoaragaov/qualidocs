@@ -1,26 +1,43 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
-import { Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound } from "lucide-react";
+import {
+  Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound,
+  Search, Users, Crown, Clock, Bell, Check, CheckCheck,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { listProjects, createProject, deleteProject, importDraft } from "@/lib/tms.functions";
-import { joinProjectByCode } from "@/lib/members.functions";
+import { createProject, deleteProject, importDraft } from "@/lib/tms.functions";
+import {
+  joinProjectByCode, listMyProjects, listNotifications, markNotificationsRead,
+  type MyProjectSummary, type NotificationRow,
+} from "@/lib/members.functions";
 
 const projectsQueryOptions = () => ({
-  queryKey: ["projects"] as const,
-  queryFn: () => listProjects(),
-  staleTime: 30_000,
+  queryKey: ["my-projects"] as const,
+  queryFn: () => listMyProjects(),
+  staleTime: 15_000,
+});
+
+const notificationsQueryOptions = () => ({
+  queryKey: ["notifications"] as const,
+  queryFn: () => listNotifications(),
+  staleTime: 15_000,
+  refetchInterval: 30_000,
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
@@ -28,6 +45,18 @@ export const Route = createFileRoute("/_authenticated/projects/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
 });
+
+function fmt(d: string) {
+  try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: ptBR }); }
+  catch { return d; }
+}
+
+function roleLabel(r: MyProjectSummary["my_role"]) {
+  return r === "owner" ? "Proprietário"
+    : r === "admin" ? "Administrador"
+    : r === "collaborator" ? "Colaborador"
+    : "Visualizador";
+}
 
 function DashboardPage() {
   const create = useServerFn(createProject);
@@ -37,14 +66,16 @@ function DashboardPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: projects, isPending } = useQuery(projectsQueryOptions());
+  const { data, isPending } = useQuery(projectsQueryOptions());
 
+  const [newProjOpen, setNewProjOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [delId, setDelId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
@@ -58,7 +89,8 @@ function DashboardPage() {
     mutationFn: (name: string) => create({ data: { projeto: name } }),
     onSuccess: (row) => {
       toast.success("Projeto criado");
-      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
+      setNewProjOpen(false); setNome("");
       navigate({ to: "/projects/$id", params: { id: row.id } });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -68,7 +100,7 @@ function DashboardPage() {
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => {
       toast.success("Projeto excluído");
-      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
       setDelId(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -101,7 +133,7 @@ function DashboardPage() {
       toast.success("Rascunho importado!");
       try { localStorage.removeItem("citse-qa-data-v1"); } catch { /* ignore */ }
       setHasDraft(false);
-      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
       navigate({ to: "/projects/$id", params: { id: res.id } });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -110,11 +142,16 @@ function DashboardPage() {
   const joinM = useMutation({
     mutationFn: (code: string) => join({ data: { code } }),
     onSuccess: (res) => {
-      toast.success("Você entrou no projeto!");
       setJoinOpen(false);
       setJoinCode("");
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      navigate({ to: "/projects/$id", params: { id: res.project_id } });
+      if (res.already_member) {
+        toast.success("Você já é membro desse projeto");
+        qc.invalidateQueries({ queryKey: ["my-projects"] });
+        navigate({ to: "/projects/$id", params: { id: res.project_id } });
+      } else {
+        toast.success("Solicitação enviada! Aguarde a aprovação do proprietário.");
+        qc.invalidateQueries({ queryKey: ["notifications"] });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -125,6 +162,14 @@ function DashboardPage() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  const owned = data?.owned ?? [];
+  const collab = data?.collaborating ?? [];
+  const filter = (p: MyProjectSummary) =>
+    !q.trim() || p.projeto.toLowerCase().includes(q.toLowerCase()) ||
+    (p.owner_name ?? "").toLowerCase().includes(q.toLowerCase());
+  const ownedF = owned.filter(filter);
+  const collabF = collab.filter(filter);
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -140,97 +185,119 @@ function DashboardPage() {
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" /> Sair
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationsBell />
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" /> Sair
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10 space-y-8">
-        <Card className="rounded-xl border-slate-200/70 bg-white shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <CardTitle className="text-lg">Novo projeto</CardTitle>
-              <Button
-                variant="outline"
-                onClick={() => setJoinOpen(true)}
-                className="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
-              >
-                <KeyRound className="mr-2 h-4 w-4" /> Entrar em um Projeto
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[240px] space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Nome do projeto</Label>
-              <Input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex.: Plataforma Citse — Onboarding"
-                onKeyDown={(e) => { if (e.key === "Enter" && nome.trim()) createM.mutate(nome.trim()); }}
-              />
-            </div>
-            <div className="flex items-end gap-2">
-              <Button onClick={() => nome.trim() && createM.mutate(nome.trim())} disabled={createM.isPending || !nome.trim()}>
-                <Plus className="mr-2 h-4 w-4" /> Criar projeto
-              </Button>
-              {hasDraft && (
-                <Button variant="outline" onClick={() => importM.mutate()} disabled={importM.isPending}>
-                  <Upload className="mr-2 h-4 w-4" /> Importar rascunho local
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <main className="mx-auto max-w-7xl px-6 py-10 space-y-10">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Pesquisar projeto ou proprietário…"
+              className="pl-9 h-10 rounded-lg bg-white"
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setJoinOpen(true)}
+            className="h-10 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+          >
+            <KeyRound className="mr-2 h-4 w-4" /> Entrar em um projeto
+          </Button>
+          {hasDraft && (
+            <Button variant="outline" onClick={() => importM.mutate()} disabled={importM.isPending} className="h-10">
+              <Upload className="mr-2 h-4 w-4" /> Importar rascunho
+            </Button>
+          )}
+          <Button onClick={() => setNewProjOpen(true)} className="h-10">
+            <Plus className="mr-2 h-4 w-4" /> Novo projeto
+          </Button>
+        </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Meus Projetos */}
+        <section className="space-y-4">
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <Crown className="h-4 w-4 text-amber-500" /> Meus projetos
+            </h2>
+            <span className="text-xs text-muted-foreground">{ownedF.length}</span>
+          </div>
           {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
-          {projects?.length === 0 && (
-            <Card className="sm:col-span-2 lg:col-span-3 rounded-xl border-dashed border-slate-300 bg-white">
-              <CardContent className="py-14 text-center text-sm text-muted-foreground">
-                Nenhum projeto ainda. Crie o primeiro acima ou entre em um usando um código de acesso.
+          {!isPending && ownedF.length === 0 && (
+            <Card className="rounded-xl border-dashed border-slate-300 bg-white">
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Você ainda não criou nenhum projeto. Clique em <b>Novo projeto</b> para começar.
               </CardContent>
             </Card>
           )}
-          {projects?.map((p) => (
-            <Card key={p.id} className="group rounded-xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                <div className="min-w-0">
-                  <CardTitle className="text-base truncate">{p.projeto || "(sem nome)"}</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    v{p.versao || "—"} · {p.responsavel || "sem responsável"}
-                  </p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setDelId(p.id)} className="text-muted-foreground hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
-                  {p.objetivo || "Sem objetivo definido."}
-                </p>
-                {p.codigo_acesso && (
-                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">
-                    <KeyRound className="h-3 w-3" /> {p.codigo_acesso}
-                  </div>
-                )}
-                <Button asChild size="sm" variant="secondary" className="mt-4 w-full rounded-lg">
-                  <Link to="/projects/$id" params={{ id: p.id }}>
-                    Abrir <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {ownedF.map((p) => <OwnerCard key={p.id} p={p} onDelete={setDelId} />)}
+          </div>
+        </section>
+
+        {/* Colaboro */}
+        <section className="space-y-4">
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" /> Projetos em que colaboro
+            </h2>
+            <span className="text-xs text-muted-foreground">{collabF.length}</span>
+          </div>
+          {!isPending && collabF.length === 0 && (
+            <Card className="rounded-xl border-dashed border-slate-300 bg-white">
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Você ainda não colabora em nenhum projeto. Use um código de acesso ou aceite um convite para entrar.
               </CardContent>
             </Card>
-          ))}
-        </div>
+          )}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {collabF.map((p) => <CollabCard key={p.id} p={p} />)}
+          </div>
+        </section>
       </main>
 
+      {/* Novo projeto */}
+      <Dialog open={newProjOpen} onOpenChange={setNewProjOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo projeto</DialogTitle>
+            <DialogDescription>Dê um nome ao seu projeto. Você poderá configurar tudo mais depois.</DialogDescription>
+          </DialogHeader>
+          <div className="py-2 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Nome do projeto</Label>
+            <Input
+              autoFocus
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: Plataforma Citse — Onboarding"
+              onKeyDown={(e) => { if (e.key === "Enter" && nome.trim()) createM.mutate(nome.trim()); }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar</Button>
+            <Button onClick={() => nome.trim() && createM.mutate(nome.trim())} disabled={createM.isPending || !nome.trim()}>
+              <Plus className="mr-2 h-4 w-4" /> Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Join code */}
       <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) setJoinCode(""); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Entrar em um projeto</DialogTitle>
             <DialogDescription>
-              Digite o código de acesso do projeto (ex.: <span className="font-mono">CTS-89F</span>) para virar colaborador.
+              Digite o código de acesso (ex.: <span className="font-mono">CTS-89F</span>). O proprietário receberá uma solicitação para aprovar seu acesso.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
@@ -247,18 +314,19 @@ function DashboardPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setJoinOpen(false)}>Cancelar</Button>
             <Button onClick={() => joinCode.trim() && joinM.mutate(joinCode.trim())} disabled={joinM.isPending || !joinCode.trim()}>
-              <ArrowRight className="mr-2 h-4 w-4" /> Entrar
+              <ArrowRight className="mr-2 h-4 w-4" /> Solicitar acesso
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Delete */}
       <AlertDialog open={!!delId} onOpenChange={(o) => !o && setDelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todos os dados relacionados (user stories, casos de teste, bugs, auditoria) serão removidos.
+              Todos os dados relacionados (user stories, casos de teste, bugs, auditoria, membros) serão removidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -268,5 +336,157 @@ function DashboardPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string) => void }) {
+  return (
+    <Card className="group rounded-xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-0"><Crown className="h-3 w-3 mr-1" /> Proprietário</Badge>
+            {p.pending_requests > 0 && (
+              <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-0">
+                {p.pending_requests} solicitação{p.pending_requests > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+          <CardTitle className="mt-2 text-base truncate">{p.projeto || "(sem nome)"}</CardTitle>
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => onDelete(p.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-3">
+        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">{p.objetivo || "Sem objetivo definido."}</p>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {p.member_count} {p.member_count === 1 ? "membro" : "membros"}</span>
+          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p.updated_at)}</span>
+        </div>
+        {p.codigo_acesso && (
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">
+            <KeyRound className="h-3 w-3" /> {p.codigo_acesso}
+          </div>
+        )}
+        <Button asChild size="sm" className="w-full rounded-lg">
+          <Link to="/projects/$id" params={{ id: p.id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CollabCard({ p }: { p: MyProjectSummary }) {
+  return (
+    <Card className="group rounded-xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-0">{roleLabel(p.my_role)}</Badge>
+        </div>
+        <CardTitle className="mt-2 text-base truncate">{p.projeto || "(sem nome)"}</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> {p.owner_name || "Proprietário"}
+        </p>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-3">
+        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">{p.objetivo || "Sem descrição."}</p>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {p.member_count}</span>
+          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p.updated_at)}</span>
+        </div>
+        <Button asChild size="sm" variant="secondary" className="w-full rounded-lg">
+          <Link to="/projects/$id" params={{ id: p.id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function notificationText(n: NotificationRow): string {
+  const actor = n.actor_name || "Alguém";
+  const proj = n.project_name ?? "um projeto";
+  switch (n.type) {
+    case "access_request": return `${actor} solicitou acesso ao projeto "${proj}".`;
+    case "access_approved": return `Seu acesso ao projeto "${proj}" foi aprovado.`;
+    case "access_rejected": return `Seu acesso ao projeto "${proj}" foi recusado.`;
+    case "invitation_accepted": return `${actor} aceitou o convite para "${proj}".`;
+    default: return `Nova atualização em "${proj}".`;
+  }
+}
+
+function NotificationsBell() {
+  const qc = useQueryClient();
+  const { data } = useQuery(notificationsQueryOptions());
+  const markRead = useServerFn(markNotificationsRead);
+  const [open, setOpen] = useState(false);
+  const notifs = data ?? [];
+  const unread = notifs.filter((n) => !n.read_at).length;
+
+  const markAll = useMutation({
+    mutationFn: () => markRead({ data: {} }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  return (
+    <Popover open={open} onOpenChange={(o) => {
+      setOpen(o);
+      if (o && unread > 0) markAll.mutate();
+    }}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute top-1.5 right-1.5 h-4 min-w-[16px] rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white flex items-center justify-center">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-96 p-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <div className="text-sm font-semibold">Notificações</div>
+          {unread > 0 && (
+            <button
+              onClick={() => markAll.mutate()}
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            >
+              <CheckCheck className="h-3 w-3" /> Marcar tudo como lido
+            </button>
+          )}
+        </div>
+        <div className="max-h-[420px] overflow-y-auto divide-y">
+          {notifs.length === 0 && (
+            <div className="p-6 text-center text-xs text-muted-foreground">Nenhuma notificação por aqui.</div>
+          )}
+          {notifs.map((n) => {
+            const inner = (
+              <div className="flex items-start gap-3">
+                <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${n.read_at ? "bg-slate-300" : "bg-primary"}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-snug">{notificationText(n)}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{fmt(n.created_at)}</p>
+                </div>
+                {n.read_at && <Check className="h-3.5 w-3.5 text-slate-300 shrink-0" />}
+              </div>
+            );
+            if (n.project_id) {
+              return (
+                <Link
+                  key={n.id}
+                  to="/projects/$id"
+                  params={{ id: n.project_id }}
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-3 hover:bg-slate-50"
+                >
+                  {inner}
+                </Link>
+              );
+            }
+            return <div key={n.id} className="px-4 py-3">{inner}</div>;
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
