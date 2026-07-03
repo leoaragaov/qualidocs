@@ -1110,6 +1110,7 @@ function MembersTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6">
+      <PendingAccessRequestsPanel projectId={projectId} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Membros do projeto</CardTitle>
