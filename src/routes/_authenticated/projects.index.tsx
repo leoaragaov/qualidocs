@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
-import { Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight } from "lucide-react";
+import { Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { listProjects, createProject, deleteProject, importDraft } from "@/lib/tms.functions";
+import { joinProjectByCode } from "@/lib/members.functions";
 
 const projectsQueryOptions = () => ({
   queryKey: ["projects"] as const,
