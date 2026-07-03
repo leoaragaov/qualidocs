@@ -22,9 +22,14 @@ import {
   getProjectDetail, updateProject, upsertSchedule, upsertRisk, upsertUserStory,
   upsertTestCase, setTestCaseStatus, executeTestCase, upsertBug, deleteRow, listAudit,
 } from "@/lib/tms.functions";
+import {
+  listMembers, listInvitations, inviteMember, updateMemberRole, removeMember,
+  revokeInvitation, resendInvitation, type ProjectRole,
+} from "@/lib/members.functions";
 import type {
   TmsSchedule, TmsRisk, TmsUserStory, TmsTestCase, TmsBug, TestStatus, BugSeverity, BugStatus,
 } from "@/lib/tms-types";
+
 
 const projectDetailQueryOptions = (id: string) => ({
   queryKey: ["project", id] as const,
