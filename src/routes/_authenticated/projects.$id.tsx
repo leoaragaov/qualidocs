@@ -789,9 +789,78 @@ function EditBugForm({ bug, onSave, onCancel }: { bug: TmsBug; onSave: (b: TmsBu
 }
 
 // ============ Audit ============
+const ENTITY_LABEL: Record<string, string> = {
+  test_cases: "Caso de Teste",
+  bugs: "Bug",
+  user_stories: "User Story",
+  risks: "Risco",
+  schedule_items: "Atividade",
+  projects: "Projeto",
+};
+
+const FIELD_LABEL: Record<string, string> = {
+  status: "Status", titulo: "Título", severidade: "Severidade", prioridade: "Prioridade",
+  descricao: "Descrição", modulo: "Módulo", ator: "Ator", sprint: "Sprint",
+  story: "User Story", criterio1: "Critério 1", criterio2: "Critério 2",
+  precondicoes: "Pré-condições", massa: "Massa de Dados", passos: "Passos",
+  esperado: "Resultado Esperado", obtido: "Resultado Obtido", evidencia: "Evidência",
+  observacoes: "Observações", tipo: "Tipo", ct_id: "ID CT", us_id: "ID US",
+  bug_id: "ID Bug", risco_id: "ID Risco", id_us: "US Vinculada", fase: "Fase",
+  atividade: "Atividade", inicio: "Início", fim: "Fim", responsavel: "Responsável",
+  impacto: "Impacto", probabilidade: "Probabilidade", mitigacao: "Mitigação",
+  comportamento_atual: "Comportamento Atual", comportamento_esperado: "Comportamento Esperado",
+  ordem: "Ordem", projeto: "Projeto", versao: "Versão", ambiente: "Ambiente",
+  objetivo: "Objetivo", in_scope: "In Scope", out_of_scope: "Out of Scope",
+  executado_em: "Executado em", executor: "Executor",
+};
+
+const SKIP_FIELDS = new Set(["id", "project_id", "created_at", "updated_at", "owner_id"]);
+
+function friendlyEntity(entity: string, snap: any): string {
+  const base = ENTITY_LABEL[entity] ?? entity;
+  if (!snap || typeof snap !== "object") return base;
+  switch (entity) {
+    case "test_cases": return `${base} ${snap.ct_id || "(sem ID)"}`;
+    case "bugs": return `${base} ${snap.bug_id || "(sem ID)"}${snap.severidade ? ` (Severidade: ${snap.severidade})` : ""}`;
+    case "user_stories": return `${base} ${snap.us_id || "(sem ID)"}`;
+    case "risks": return `${base} ${snap.risco_id || "(sem ID)"}`;
+    case "schedule_items": return `${base}: ${snap.atividade || snap.fase || "(sem descrição)"}`;
+    case "projects": return `${base} ${snap.projeto || ""}`.trim();
+    default: return base;
+  }
+}
+
+function fmtVal(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "(vazio)";
+  if (typeof v === "object") return JSON.stringify(v);
+  const s = String(v);
+  return s.length > 120 ? s.slice(0, 117) + "…" : s;
+}
+
+function diffFields(oldV: any, newV: any): Array<{ field: string; old: unknown; new: unknown }> {
+  if (!oldV || !newV || typeof oldV !== "object" || typeof newV !== "object") return [];
+  const keys = new Set([...Object.keys(oldV), ...Object.keys(newV)]);
+  const out: Array<{ field: string; old: unknown; new: unknown }> = [];
+  for (const k of keys) {
+    if (SKIP_FIELDS.has(k)) continue;
+    if (JSON.stringify(oldV[k]) !== JSON.stringify(newV[k])) {
+      out.push({ field: FIELD_LABEL[k] ?? k, old: oldV[k], new: newV[k] });
+    }
+  }
+  return out;
+}
+
+const ACTION_LABEL = { create: "Criado", update: "Atualizado", delete: "Excluído" } as const;
+const ACTION_CLASS: Record<string, string> = {
+  create: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border-green-200",
+  update: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-200",
+  delete: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-200",
+};
+
 function AuditTab({ projectId }: { projectId: string }) {
   const fn = useServerFn(listAudit);
   const { data, isPending } = useQuery({ queryKey: ["audit", projectId], queryFn: () => fn({ data: { project_id: projectId } }) });
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
   return (
     <Card>
@@ -799,15 +868,47 @@ function AuditTab({ projectId }: { projectId: string }) {
       <CardContent>
         {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
         {data?.length === 0 && <p className="text-sm text-muted-foreground">Sem atividade registrada.</p>}
-        <div className="space-y-1">
-          {data?.map((log) => (
-            <div key={log.id} className="flex items-center gap-2 border-b py-2 text-sm last:border-0">
-              <Badge variant={log.action === "delete" ? "destructive" : log.action === "create" ? "default" : "secondary"}>{log.action}</Badge>
-              <span className="font-mono text-xs text-muted-foreground">{log.entity}</span>
-              <span className="flex-1 truncate text-xs text-muted-foreground">{log.entity_id}</span>
-              <span className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString()}</span>
-            </div>
-          ))}
+        <div className="space-y-2">
+          {data?.map((log) => {
+            const diff = log.diff as any;
+            const snap = log.action === "update" ? diff?.new : diff;
+            const changes = log.action === "update" ? diffFields(diff?.old, diff?.new) : [];
+            const author = (log as any).actor_label || (log.actor_id ? log.actor_id.slice(0, 8) : "sistema");
+            const isOpen = !!open[log.id];
+            const expandable = log.action === "update" && changes.length > 0;
+
+            return (
+              <div key={log.id} className="rounded-md border bg-card">
+                <button
+                  type="button"
+                  onClick={() => expandable && setOpen((o) => ({ ...o, [log.id]: !o[log.id] }))}
+                  className={`w-full flex flex-wrap items-center gap-2 px-3 py-2 text-left text-sm ${expandable ? "cursor-pointer hover:bg-accent/40" : "cursor-default"}`}
+                >
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${ACTION_CLASS[log.action]}`}>
+                    {ACTION_LABEL[log.action]}
+                  </span>
+                  <span className="font-medium">{friendlyEntity(log.entity, snap)}</span>
+                  <span className="text-xs text-muted-foreground">Por: {author}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</span>
+                  {expandable && (
+                    <span className="text-xs text-muted-foreground">{isOpen ? "▲" : "▼"} {changes.length} campo(s)</span>
+                  )}
+                </button>
+                {expandable && isOpen && (
+                  <div className="border-t bg-muted/30 px-3 py-2 space-y-1">
+                    {changes.map((c, i) => (
+                      <div key={i} className="text-xs">
+                        <span className="font-medium">{c.field}</span> alterado de{" "}
+                        <span className="rounded bg-red-100 px-1 py-0.5 text-red-800 dark:bg-red-950 dark:text-red-300">{fmtVal(c.old)}</span>{" "}
+                        para{" "}
+                        <span className="rounded bg-green-100 px-1 py-0.5 text-green-800 dark:bg-green-950 dark:text-green-300">{fmtVal(c.new)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
