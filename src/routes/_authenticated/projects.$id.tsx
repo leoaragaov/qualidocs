@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
-  ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, Bug as BugIcon, History, LogOut,
+  ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
   CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock,
 } from "lucide-react";
 
@@ -52,6 +52,7 @@ function ProjectPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [tab, setTab] = useState<Tab>("plano");
 
   const { data, isPending, error } = useQuery(projectDetailQueryOptions(id));
@@ -77,6 +78,21 @@ function ProjectPage() {
       toast.error("Falha ao exportar planilha.");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleExportPdf() {
+    if (!data) return;
+    try {
+      setExportingPdf(true);
+      const { exportProjectToPdf } = await import("@/lib/pdf-export");
+      await exportProjectToPdf(data);
+      toast.success("PDF gerado!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao exportar PDF.");
+    } finally {
+      setExportingPdf(false);
     }
   }
 
@@ -120,8 +136,11 @@ function ProjectPage() {
                 {code}
               </button>
             )}
-            <Button onClick={handleExport} disabled={exporting}>
-              <Download className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar XLSX"}
+            <Button onClick={handleExport} disabled={exporting} variant="outline">
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar XLSX"}
+            </Button>
+            <Button onClick={handleExportPdf} disabled={exportingPdf}>
+              <FileText className="mr-2 h-4 w-4" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
             </Button>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
