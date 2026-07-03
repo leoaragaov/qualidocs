@@ -77,15 +77,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "QualiDocs — Plataforma colaborativa de QA" },
-      { name: "description", content: "QualiDocs: gerencie planos de teste, user stories, execução, bugs e auditoria em um só lugar. Exporte em Excel ou PDF Executivo." },
+      { title: "QualiDocs — Sistema de gerenciamento de testes" },
+      { name: "description", content: "Plataforma completa de QA: plano de teste, user stories, execução, bugs e auditoria — com exportação para Excel." },
       { name: "author", content: "QualiDocs" },
-      { property: "og:title", content: "QualiDocs — Plataforma colaborativa de QA" },
-      { property: "og:description", content: "Gerencie planos de teste, execução, bugs e auditoria em um só lugar." },
+      { property: "og:title", content: "QualiDocs — Sistema de gerenciamento de testes" },
+      { property: "og:description", content: "Plataforma completa de QA: plano de teste, user stories, execução, bugs e auditoria — com exportação para Excel." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "QualiDocs — Plataforma colaborativa de QA" },
-      { name: "twitter:description", content: "Gerencie planos de teste, execução, bugs e auditoria em um só lugar." },
+      { name: "twitter:title", content: "QualiDocs — Sistema de gerenciamento de testes" },
+      { name: "twitter:description", content: "Plataforma completa de QA: plano de teste, user stories, execução, bugs e auditoria — com exportação para Excel." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f1813088-1169-4911-b0ff-71e6cf0f28e3/id-preview-0c7563b2--1b35f846-0b27-483c-a8b5-c3a9bb5674e3.lovable.app-1783109457121.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f1813088-1169-4911-b0ff-71e6cf0f28e3/id-preview-0c7563b2--1b35f846-0b27-483c-a8b5-c3a9bb5674e3.lovable.app-1783109457121.png" },
     ],
     links: [
       {
