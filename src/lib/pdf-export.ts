@@ -93,9 +93,9 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
   autoTable(doc, {
     startY: y,
     theme: "grid",
-    styles: { font: "helvetica", fontSize: 10, cellPadding: 3, textColor: NAVY as unknown as number[] },
+    styles: { font: "helvetica", fontSize: 10, cellPadding: 3, textColor: NAVY },
     columnStyles: {
-      0: { fillColor: LIGHT as unknown as number[], fontStyle: "bold", cellWidth: 55 },
+      0: { fillColor: LIGHT, fontStyle: "bold", cellWidth: 55 },
       1: { cellWidth: "auto" },
     },
     body: [
@@ -143,7 +143,7 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
     startY: y,
     theme: "grid",
     styles: { font: "helvetica", fontSize: 10, cellPadding: 3 },
-    headStyles: { fillColor: NAVY as unknown as number[], textColor: 255, fontStyle: "bold" },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
     head: [["Métrica", "Valor"]],
     body: [
       ["Total de Histórias de Usuário", String(d.userStories.length)],
@@ -164,9 +164,9 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
   autoTable(doc, {
     startY: y,
     theme: "grid",
-    styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: NAVY as unknown as number[] },
+    styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: NAVY },
     columnStyles: {
-      0: { fillColor: LIGHT as unknown as number[], fontStyle: "bold", cellWidth: 40 },
+      0: { fillColor: LIGHT, fontStyle: "bold", cellWidth: 40 },
     },
     body: [
       ["Objetivo", p.objetivo || "—"],
@@ -182,7 +182,7 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
       startY: y,
       theme: "striped",
       styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
-      headStyles: { fillColor: NAVY_SOFT as unknown as number[], textColor: 255 },
+      headStyles: { fillColor: NAVY_SOFT, textColor: 255 },
       head: [["Fase", "Atividade", "Início", "Fim", "Responsável", "Status"]],
       body: d.schedule.map((s) => [s.fase, s.atividade, fmtDate(s.inicio), fmtDate(s.fim), s.responsavel, s.status]),
       margin: { left: 14, right: 14 },
@@ -199,7 +199,7 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
     startY: y,
     theme: "grid",
     styles: { font: "helvetica", fontSize: 8.5, cellPadding: 2.5, valign: "top" },
-    headStyles: { fillColor: NAVY as unknown as number[], textColor: 255 },
+    headStyles: { fillColor: NAVY, textColor: 255 },
     head: [["ID_CT", "Módulo", "Caso de Teste", "Resultado Obtido", "Status"]],
     body: tests.map((c) => [c.ct_id, c.modulo, c.esperado || c.passos || "—", c.obtido || "—", c.status]),
     columnStyles: {
@@ -211,9 +211,9 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index === 4) {
         const v = String(data.cell.raw ?? "");
-        if (v === "Passou") data.cell.styles.textColor = GREEN as unknown as number[];
-        else if (v === "Falhou") data.cell.styles.textColor = RED as unknown as number[];
-        else data.cell.styles.textColor = GRAY_TEXT as unknown as number[];
+        if (v === "Passou") data.cell.styles.textColor = GREEN;
+        else if (v === "Falhou") data.cell.styles.textColor = RED;
+        else data.cell.styles.textColor = GRAY_TEXT;
       }
     },
   });
@@ -240,7 +240,7 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
       startY: y,
       theme: "grid",
       styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5, valign: "top" },
-      headStyles: { fillColor: NAVY as unknown as number[], textColor: 255 },
+      headStyles: { fillColor: NAVY, textColor: 255 },
       head: [["ID_Bug", "Título / Descrição", "Severidade", "Status"]],
       body: d.bugs.map((b) => [b.bug_id, b.titulo, b.severidade, b.status]),
       columnStyles: {
@@ -252,12 +252,12 @@ export async function exportProjectToPdf(d: TmsProjectDetail) {
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 3) {
           const v = String(data.cell.raw ?? "");
-          if (v === "Corrigido" || v === "Retestado") data.cell.styles.textColor = GREEN as unknown as number[];
-          else if (v === "Aberto" || v === "Em Correção") data.cell.styles.textColor = RED as unknown as number[];
+          if (v === "Corrigido" || v === "Retestado") data.cell.styles.textColor = GREEN;
+          else if (v === "Aberto" || v === "Em Correção") data.cell.styles.textColor = RED;
         }
         if (data.section === "body" && data.column.index === 2) {
           const v = String(data.cell.raw ?? "");
-          if (v === "Alta") data.cell.styles.textColor = RED as unknown as number[];
+          if (v === "Alta") data.cell.styles.textColor = RED;
         }
       },
     });
