@@ -1271,3 +1271,176 @@ function MembersTab({ projectId }: { projectId: string }) {
   );
 }
 
+// ---------------- Request Access Screen ----------------
+function RequestAccessScreen({ projectId, onSignOut }: { projectId: string; onSignOut: () => void }) {
+  const qc = useQueryClient();
+  const preview = useQuery({
+    queryKey: ["project-preview", projectId],
+    queryFn: () => getProjectPreview({ data: { project_id: projectId } }),
+    staleTime: 15_000,
+  });
+  const [msg, setMsg] = useState("");
+  const reqM = useMutation({
+    mutationFn: () => requestProjectAccess({ data: { project_id: projectId, message: msg || undefined } }),
+    onSuccess: () => {
+      toast.success("Solicitação enviada!");
+      qc.invalidateQueries({ queryKey: ["project-preview", projectId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const p = preview.data;
+  const pending = p?.my_request_status === "pending";
+
+  return (
+    <div className="min-h-screen bg-slate-50/60">
+      <Toaster richColors position="top-right" />
+      <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/projects"><ArrowLeft className="mr-1 h-4 w-4" /> Meus projetos</Link>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onSignOut}>
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
+      <main className="mx-auto max-w-2xl px-6 py-16">
+        {preview.isPending && <p className="text-sm text-muted-foreground text-center">Carregando…</p>}
+        {!preview.isPending && !p && (
+          <Card className="rounded-xl border-slate-200/70 bg-white shadow-sm">
+            <CardContent className="py-14 text-center text-sm text-muted-foreground">
+              Projeto não encontrado ou indisponível.
+            </CardContent>
+          </Card>
+        )}
+        {p && (
+          <Card className="rounded-xl border-slate-200/70 bg-white shadow-sm">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <ShieldAlert className="h-7 w-7" />
+              </div>
+              <CardTitle className="mt-4 text-xl">{p.projeto || "Projeto"}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Este projeto pertence a <b>{p.owner_name || p.owner_email || "outro usuário"}</b>
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <div className="text-xl font-semibold">{p.member_count}</div>
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Membros</div>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <div className="text-xl font-semibold inline-flex items-center gap-1 justify-center">
+                    <Crown className="h-4 w-4 text-amber-500" />
+                    <span className="truncate text-sm">{(p.owner_name || p.owner_email || "").split(" ")[0] || "—"}</span>
+                  </div>
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Proprietário</div>
+                </div>
+              </div>
+              {p.objetivo && (
+                <div>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Descrição</Label>
+                  <p className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">{p.objetivo}</p>
+                </div>
+              )}
+              {pending ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
+                  <Clock className="mx-auto h-6 w-6 text-amber-600" />
+                  <p className="mt-2 text-sm font-medium text-amber-900">Solicitação pendente</p>
+                  <p className="text-xs text-amber-700">Aguardando aprovação do proprietário.</p>
+                </div>
+              ) : p.my_request_status === "rejected" ? (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-center">
+                  <XCircle className="mx-auto h-6 w-6 text-rose-600" />
+                  <p className="mt-2 text-sm font-medium text-rose-900">Sua última solicitação foi recusada</p>
+                  <p className="text-xs text-rose-700">Você pode solicitar novamente abaixo, se preciso.</p>
+                </div>
+              ) : null}
+
+              {!pending && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Mensagem (opcional)</Label>
+                  <Textarea
+                    value={msg}
+                    onChange={(e) => setMsg(e.target.value)}
+                    placeholder="Conte ao proprietário por que você precisa de acesso…"
+                    rows={3}
+                  />
+                  <Button className="w-full" onClick={() => reqM.mutate()} disabled={reqM.isPending}>
+                    <Send className="mr-2 h-4 w-4" /> Solicitar acesso ao projeto
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ---------------- Pending Access Requests Panel (inside Members tab) ----------------
+function PendingAccessRequestsPanel({ projectId }: { projectId: string }) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["access-requests", projectId],
+    queryFn: () => listAccessRequests({ data: { project_id: projectId } }),
+    staleTime: 15_000,
+  });
+  const decideM = useMutation({
+    mutationFn: (v: { id: string; approve: boolean }) => decideAccessRequest({ data: v }),
+    onSuccess: (_r, v) => {
+      toast.success(v.approve ? "Acesso aprovado" : "Solicitação recusada");
+      qc.invalidateQueries({ queryKey: ["access-requests", projectId] });
+      qc.invalidateQueries({ queryKey: ["members", projectId] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const list = q.data ?? [];
+  if (!list.length) return null;
+  return (
+    <Card className="border-amber-200 bg-amber-50/40">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-amber-600" />
+          Solicitações de acesso pendentes
+          <Badge className="bg-amber-200 text-amber-900 hover:bg-amber-200 border-0">{list.length}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {list.map((r) => (
+          <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{r.name || r.email || "Usuário"}</div>
+              <div className="text-xs text-muted-foreground truncate">{r.email}</div>
+              {r.message && <div className="mt-1 text-xs italic text-slate-600 line-clamp-2">"{r.message}"</div>}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm" variant="outline"
+                className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                onClick={() => decideM.mutate({ id: r.id, approve: false })}
+                disabled={decideM.isPending}
+              >
+                <XCircle className="mr-1 h-4 w-4" /> Recusar
+              </Button>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => decideM.mutate({ id: r.id, approve: true })}
+                disabled={decideM.isPending}
+              >
+                <CheckCircle2 className="mr-1 h-4 w-4" /> Aprovar
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
