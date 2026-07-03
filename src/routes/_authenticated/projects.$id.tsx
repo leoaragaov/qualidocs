@@ -419,78 +419,140 @@ function statusBadge(s: TestStatus) {
 }
 
 function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: TmsTestCase[]; onChange: () => void }) {
-  const setStatus = useServerFn(setTestCaseStatus);
+  const upTC = useServerFn(upsertTestCase);
   const upBug = useServerFn(upsertBug);
+  const [selected, setSelected] = useState<TmsTestCase | null>(null);
+  const [obtido, setObtido] = useState("");
+  const [evidencia, setEvidencia] = useState("");
   const [bugDialog, setBugDialog] = useState<{ ct: TmsTestCase } | null>(null);
+
+  const queue = useMemo(
+    () => rows.filter((r) => r.status === "Pendente" || r.status === "Falhou"),
+    [rows],
+  );
 
   const summary = useMemo(() => {
     const total = rows.length;
     const c = (s: TestStatus) => rows.filter((r) => r.status === s).length;
-    return { total, passou: c("Passou"), falhou: c("Falhou"), bloq: c("Bloqueado"), pend: c("Pendente") };
+    return { total, passou: c("Passou"), falhou: c("Falhou"), pend: c("Pendente") };
   }, [rows]);
-  const pct = summary.total ? Math.round(((summary.passou) / summary.total) * 100) : 0;
+  const pct = summary.total ? Math.round((summary.passou / summary.total) * 100) : 0;
 
-  async function mark(ct: TmsTestCase, s: TestStatus) {
-    await setStatus({ data: { id: ct.id, status: s } });
+  function openTest(ct: TmsTestCase) {
+    setSelected(ct);
+    setObtido(ct.obtido || "");
+    setEvidencia(ct.evidencia || "");
+  }
+
+  async function execute(status: "Passou" | "Falhou") {
+    if (!selected) return;
+    const updated: TmsTestCase = { ...selected, obtido, evidencia, status };
+    await upTC({ data: updated as any });
     onChange();
-    if (s === "Falhou") setBugDialog({ ct });
-    else toast.success(`Marcado como ${s}`);
+    if (status === "Passou") {
+      toast.success("Teste aprovado");
+      setSelected(null);
+    } else {
+      setBugDialog({ ct: updated });
+    }
   }
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle>Resumo da execução</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Rodada de Testes</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-5 text-center">
           <Stat label="Total" value={summary.total} />
+          <Stat label="Pendentes" value={summary.pend} />
           <Stat label="Passou" value={summary.passou} tone="ok" />
           <Stat label="Falhou" value={summary.falhou} tone="bad" />
-          <Stat label="Bloqueado" value={summary.bloq} tone="warn" />
           <Stat label="% Sucesso" value={`${pct}%`} tone="ok" />
         </CardContent>
       </Card>
 
       {rows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste. Cadastre em "CT" primeiro.</CardContent></Card>}
+      {rows.length > 0 && queue.length === 0 && (
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">✨ Sem testes pendentes ou reprovados. Tudo em dia!</CardContent></Card>
+      )}
 
       <div className="space-y-2">
-        {rows.map((ct) => (
-          <Card key={ct.id}>
+        {queue.map((ct) => (
+          <Card key={ct.id} className="cursor-pointer transition-colors hover:bg-accent/50" onClick={() => openTest(ct)}>
             <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-muted-foreground">{ct.ct_id || "(sem ID)"}</span>
                   {statusBadge(ct.status)}
+                  {ct.id_us && <span className="text-xs text-muted-foreground">US: {ct.id_us}</span>}
                 </div>
                 <p className="mt-1 text-sm line-clamp-1">{ct.esperado || ct.passos || ct.modulo || "(sem descrição)"}</p>
               </div>
-              <div className="flex flex-wrap gap-1">
-                <Button size="sm" variant={ct.status === "Passou" ? "default" : "outline"} onClick={() => mark(ct, "Passou")}><CheckCircle2 className="mr-1 h-4 w-4" /> Passou</Button>
-                <Button size="sm" variant={ct.status === "Falhou" ? "destructive" : "outline"} onClick={() => mark(ct, "Falhou")}><XCircle className="mr-1 h-4 w-4" /> Falhou</Button>
-                <Button size="sm" variant={ct.status === "Bloqueado" ? "secondary" : "outline"} onClick={() => mark(ct, "Bloqueado")}><ShieldAlert className="mr-1 h-4 w-4" /> Bloqueado</Button>
-                <Button size="sm" variant="ghost" onClick={() => mark(ct, "Pendente")}><Circle className="mr-1 h-4 w-4" /> Pendente</Button>
-              </div>
+              <Button size="sm" variant="outline">Executar</Button>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="font-mono">{selected?.ct_id || "CT"}</span>
+              {selected && statusBadge(selected.status)}
+            </DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-3 rounded-md border bg-muted/30 p-3 text-sm">
+                <div><span className="text-xs text-muted-foreground">User Story</span><p className="font-mono">{selected.id_us || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">Módulo</span><p>{selected.modulo || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">Tipo</span><p>{selected.tipo || "—"}</p></div>
+              </div>
+              <ReadOnlyBlock label="Pré-condições" value={selected.precondicoes} />
+              <ReadOnlyBlock label="Massa de Dados" value={selected.massa} />
+              <ReadOnlyBlock label="Passo a Passo" value={selected.passos} />
+              <ReadOnlyBlock label="Resultado Esperado" value={selected.esperado} />
+
+              <div className="border-t pt-4 space-y-3">
+                <Field label="Resultado Obtido">
+                  <Textarea rows={3} value={obtido} onChange={(e) => setObtido(e.target.value)} placeholder="Descreva o que aconteceu na execução..." />
+                </Field>
+                <Field label="Evidência (link/arquivo)">
+                  <Input value={evidencia} onChange={(e) => setEvidencia(e.target.value)} placeholder="URL do print, vídeo, log..." />
+                </Field>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setSelected(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => execute("Falhou")}>
+              <XCircle className="mr-2 h-4 w-4" /> Falhou
+            </Button>
+            <Button onClick={() => execute("Passou")} className="bg-green-600 hover:bg-green-700 text-white">
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Passou
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BugDialog
         open={!!bugDialog}
         ct={bugDialog?.ct ?? null}
         projectId={projectId}
-        onClose={() => setBugDialog(null)}
-        onSave={async (b) => { await upBug({ data: b as any }); onChange(); setBugDialog(null); toast.success("Bug registrado"); }}
+        onClose={() => { setBugDialog(null); setSelected(null); }}
+        onSave={async (b) => { await upBug({ data: b as any }); onChange(); setBugDialog(null); setSelected(null); toast.success("Bug registrado"); }}
       />
     </div>
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "ok" | "bad" | "warn" }) {
-  const cls = tone === "ok" ? "text-green-600" : tone === "bad" ? "text-red-600" : tone === "warn" ? "text-amber-600" : "text-foreground";
+function ReadOnlyBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-card p-3">
-      <div className={`text-2xl font-bold ${cls}`}>{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <div className="mt-1 rounded-md border bg-muted/20 p-2 text-sm whitespace-pre-wrap min-h-[2rem]">
+        {value || <span className="text-muted-foreground italic">(vazio)</span>}
+      </div>
     </div>
   );
 }
