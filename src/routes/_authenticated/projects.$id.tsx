@@ -39,7 +39,7 @@ const projectDetailQueryOptions = (id: string) => ({
 });
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
-  head: () => ({ meta: [{ title: "Projeto · Citse QA" }] }),
+  head: () => ({ meta: [{ title: "Projeto · QualiDocs" }] }),
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(projectDetailQueryOptions(params.id)),
   component: ProjectPage,

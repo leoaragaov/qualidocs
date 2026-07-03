@@ -41,7 +41,7 @@ const notificationsQueryOptions = () => ({
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
-  head: () => ({ meta: [{ title: "Meus Projetos · Citse QA" }] }),
+  head: () => ({ meta: [{ title: "Meus Projetos · QualiDocs" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
 });
@@ -181,7 +181,7 @@ function DashboardPage() {
               <FileSpreadsheet className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">Citse · Meus Projetos</h1>
+              <h1 className="text-lg font-semibold tracking-tight">QualiDocs · Meus Projetos</h1>
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
@@ -278,7 +278,7 @@ function DashboardPage() {
               autoFocus
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex.: Plataforma Citse — Onboarding"
+              placeholder="Ex.: Plataforma QualiDocs — Onboarding"
               onKeyDown={(e) => { if (e.key === "Enter" && nome.trim()) createM.mutate(nome.trim()); }}
             />
           </div>

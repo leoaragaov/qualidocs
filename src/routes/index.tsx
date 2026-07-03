@@ -7,9 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Citse QA — Sistema de gerenciamento de testes" },
+      { title: "QualiDocs — Sistema de gerenciamento de testes" },
       { name: "description", content: "Plataforma completa de QA: plano de teste, user stories, execução, bugs e auditoria — com exportação para Excel." },
-      { property: "og:title", content: "Citse QA — Sistema de gerenciamento de testes" },
+      { property: "og:title", content: "QualiDocs — Sistema de gerenciamento de testes" },
       { property: "og:description", content: "Plataforma completa de QA com execução, bugs e auditoria." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -38,7 +38,7 @@ function Landing() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
             <FileSpreadsheet className="h-8 w-8" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">Citse QA</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">QualiDocs</h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
             Gerencie planos de teste, user stories, execução, bugs e auditoria em um só lugar. Exporte tudo em uma planilha bonita quando quiser.
           </p>

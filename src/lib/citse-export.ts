@@ -62,7 +62,7 @@ function buildPlano(wb: ExcelJS.Workbook, data: CitseData) {
   ];
 
   ws.mergeCells("A1:F1");
-  ws.getCell("A1").value = "📋  PLANO DE TESTE — PLATAFORMA CITSE";
+  ws.getCell("A1").value = "📋  PLANO DE TESTE — PLATAFORMA QUALIDOCS";
   styleTitle(ws.getCell("A1"));
   ws.getRow(1).height = 34;
 
@@ -232,7 +232,7 @@ function buildMatriz(wb: ExcelJS.Workbook, data: CitseData) {
 
 export async function exportCitseToXlsx(data: CitseData) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Citse QA Framework";
+  wb.creator = "QualiDocs Framework";
   wb.created = new Date();
 
   buildPlano(wb, data);
@@ -283,7 +283,7 @@ export async function exportCitseToXlsx(data: CitseData) {
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const stamp = new Date().toISOString().slice(0, 10);
-  saveAs(blob, `Citse_Framework_QA_${stamp}.xlsx`);
+  saveAs(blob, `QualiDocs_Framework_QA_${stamp}.xlsx`);
 }
 
 // ============ TMS export (banco de dados) ============
@@ -372,7 +372,7 @@ function buildDashboardSheet(wb: ExcelJS.Workbook, d: TmsProjectDetail) {
 
 export async function exportProjectToXlsx(d: TmsProjectDetail) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Citse QA Framework";
+  wb.creator = "QualiDocs Framework";
   wb.created = new Date();
 
   const adapter = buildPlanoDB(wb, d);
@@ -404,5 +404,5 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const stamp = new Date().toISOString().slice(0, 10);
   const name = (d.project.projeto || "projeto").replace(/[^\w\-]+/g, "_");
-  saveAs(blob, `Citse_${name}_${stamp}.xlsx`);
+  saveAs(blob, `QualiDocs_Framework_QA_${name}_${stamp}.xlsx`);
 }
