@@ -418,25 +418,64 @@ function statusBadge(s: TestStatus) {
   return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${it.c}`}>{it.i} {s}</span>;
 }
 
+type StatusFilter = "all" | TestStatus;
+
 function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: TmsTestCase[]; onChange: () => void }) {
-  const upTC = useServerFn(upsertTestCase);
+  const execTC = useServerFn(executeTestCase);
   const upBug = useServerFn(upsertBug);
   const [selected, setSelected] = useState<TmsTestCase | null>(null);
   const [obtido, setObtido] = useState("");
   const [evidencia, setEvidencia] = useState("");
   const [bugDialog, setBugDialog] = useState<{ ct: TmsTestCase } | null>(null);
 
+  // Filters
+  const [fStatus, setFStatus] = useState<StatusFilter>("all");
+  const [fModulo, setFModulo] = useState<string>("all");
+  const [fFrom, setFFrom] = useState<string>("");
+  const [fTo, setFTo] = useState<string>("");
+
+  const modulos = useMemo(() => {
+    const s = new Set(rows.map((r) => r.modulo).filter(Boolean));
+    return Array.from(s).sort();
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const fromMs = fFrom ? new Date(fFrom + "T00:00:00").getTime() : null;
+    const toMs = fTo ? new Date(fTo + "T23:59:59.999").getTime() : null;
+    return rows.filter((r) => {
+      if (fStatus !== "all" && r.status !== fStatus) return false;
+      if (fModulo !== "all" && r.modulo !== fModulo) return false;
+      if (fromMs !== null || toMs !== null) {
+        if (!r.executado_em) return false;
+        const t = new Date(r.executado_em).getTime();
+        if (fromMs !== null && t < fromMs) return false;
+        if (toMs !== null && t > toMs) return false;
+      }
+      return true;
+    });
+  }, [rows, fStatus, fModulo, fFrom, fTo]);
+
+  // Only Pendente/Falhou go into the executable queue (from the filtered set)
   const queue = useMemo(
-    () => rows.filter((r) => r.status === "Pendente" || r.status === "Falhou"),
-    [rows],
+    () => filtered.filter((r) => r.status === "Pendente" || r.status === "Falhou"),
+    [filtered],
   );
 
   const summary = useMemo(() => {
-    const total = rows.length;
-    const c = (s: TestStatus) => rows.filter((r) => r.status === s).length;
-    return { total, passou: c("Passou"), falhou: c("Falhou"), pend: c("Pendente") };
-  }, [rows]);
-  const pct = summary.total ? Math.round((summary.passou / summary.total) * 100) : 0;
+    const total = filtered.length;
+    const c = (s: TestStatus) => filtered.filter((r) => r.status === s).length;
+    const passou = c("Passou");
+    const falhou = c("Falhou");
+    const pend = c("Pendente");
+    const pctOk = total ? Math.round((passou / total) * 100) : 0;
+    const pctBad = total ? Math.round((falhou / total) * 100) : 0;
+    return { total, passou, falhou, pend, pctOk, pctBad };
+  }, [filtered]);
+
+  function clearFilters() {
+    setFStatus("all"); setFModulo("all"); setFFrom(""); setFTo("");
+  }
+  const filtersActive = fStatus !== "all" || fModulo !== "all" || !!fFrom || !!fTo;
 
   function openTest(ct: TmsTestCase) {
     setSelected(ct);
@@ -446,8 +485,8 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
 
   async function execute(status: "Passou" | "Falhou") {
     if (!selected) return;
-    const updated: TmsTestCase = { ...selected, obtido, evidencia, status };
-    await upTC({ data: updated as any });
+    const res = await execTC({ data: { id: selected.id, status, obtido, evidencia } });
+    const updated: TmsTestCase = { ...selected, obtido, evidencia, status, executado_em: res.executado_em, executor: res.executor };
     onChange();
     if (status === "Passou") {
       toast.success("Teste aprovado");
@@ -459,20 +498,54 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
 
   return (
     <div className="space-y-4">
+      {/* Filters */}
       <Card>
-        <CardHeader><CardTitle>Rodada de Testes</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-5 text-center">
-          <Stat label="Total" value={summary.total} />
-          <Stat label="Pendentes" value={summary.pend} />
-          <Stat label="Passou" value={summary.passou} tone="ok" />
-          <Stat label="Falhou" value={summary.falhou} tone="bad" />
-          <Stat label="% Sucesso" value={`${pct}%`} tone="ok" />
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base">Filtros</CardTitle>
+          {filtersActive && (
+            <Button size="sm" variant="ghost" onClick={clearFilters}>Limpar filtros</Button>
+          )}
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <Field label="Status">
+            <Select value={fStatus} onValueChange={(v) => setFStatus(v as StatusFilter)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {(["Pendente", "Passou", "Falhou", "Bloqueado"] as TestStatus[]).map((s) =>
+                  <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Módulo">
+            <Select value={fModulo} onValueChange={setFModulo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {modulos.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Executado de">
+            <Input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} />
+          </Field>
+          <Field label="Executado até">
+            <Input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} />
+          </Field>
         </CardContent>
       </Card>
 
+      {/* Metric cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Total de Testes" value={summary.total} />
+        <Stat label="% Sucesso" value={`${summary.pctOk}%`} tone="ok" />
+        <Stat label="% Falha" value={`${summary.pctBad}%`} tone="bad" />
+        <Stat label="Pendentes" value={summary.pend} tone="warn" />
+      </div>
+
       {rows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste. Cadastre em "CT" primeiro.</CardContent></Card>}
       {rows.length > 0 && queue.length === 0 && (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">✨ Sem testes pendentes ou reprovados. Tudo em dia!</CardContent></Card>
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">✨ Sem testes pendentes ou reprovados no filtro atual.</CardContent></Card>
       )}
 
       <div className="space-y-2">
@@ -480,10 +553,16 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
           <Card key={ct.id} className="cursor-pointer transition-colors hover:bg-accent/50" onClick={() => openTest(ct)}>
             <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs text-muted-foreground">{ct.ct_id || "(sem ID)"}</span>
                   {statusBadge(ct.status)}
                   {ct.id_us && <span className="text-xs text-muted-foreground">US: {ct.id_us}</span>}
+                  {ct.modulo && <span className="text-xs text-muted-foreground">• {ct.modulo}</span>}
+                  {ct.executado_em && (
+                    <span className="text-xs text-muted-foreground">
+                      • última: {new Date(ct.executado_em).toLocaleString("pt-BR")}{ct.executor ? ` por ${ct.executor}` : ""}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-sm line-clamp-1">{ct.esperado || ct.passos || ct.modulo || "(sem descrição)"}</p>
               </div>
