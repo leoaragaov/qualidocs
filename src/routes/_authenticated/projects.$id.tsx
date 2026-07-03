@@ -966,3 +966,268 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
     </Card>
   );
 }
+
+// ============================================================
+// Members Tab
+// ============================================================
+
+const ROLE_LABEL: Record<ProjectRole, string> = {
+  owner: "Proprietário",
+  admin: "Administrador",
+  collaborator: "Colaborador",
+  viewer: "Visualizador",
+};
+
+const ROLE_BADGE: Record<ProjectRole, string> = {
+  owner: "bg-purple-100 text-purple-800",
+  admin: "bg-blue-100 text-blue-800",
+  collaborator: "bg-green-100 text-green-800",
+  viewer: "bg-slate-100 text-slate-700",
+};
+
+function MembersTab({ projectId }: { projectId: string }) {
+  const qc = useQueryClient();
+  const members = useQuery({
+    queryKey: ["members", projectId],
+    queryFn: () => listMembers({ data: { project_id: projectId } }),
+  });
+  const invites = useQuery({
+    queryKey: ["invitations", projectId],
+    queryFn: () => listInvitations({ data: { project_id: projectId } }),
+  });
+
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<ProjectRole>("collaborator");
+  const [busy, setBusy] = useState(false);
+  const [lastLink, setLastLink] = useState<string | null>(null);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["members", projectId] });
+    qc.invalidateQueries({ queryKey: ["invitations", projectId] });
+  };
+
+  const linkFor = (token: string) =>
+    typeof window !== "undefined" ? `${window.location.origin}/invite/${token}` : `/invite/${token}`;
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Link copiado!");
+    } catch {
+      toast.error("Copie manualmente: " + text);
+    }
+  }
+
+  async function submitInvite() {
+    if (!email.trim()) return;
+    setBusy(true);
+    try {
+      const res = await inviteMember({ data: { project_id: projectId, email, role } });
+      const link = linkFor(res.invitation.token);
+      setLastLink(link);
+      toast.success(res.existingUser ? "Convite criado — usuário já cadastrado." : "Convite criado.");
+      setEmail("");
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao convidar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeRole(id: string, r: ProjectRole) {
+    try {
+      await updateMemberRole({ data: { id, role: r } });
+      toast.success("Permissão atualizada.");
+      refresh();
+    } catch (e: any) { toast.error(e?.message ?? "Falha."); }
+  }
+  async function kick(id: string) {
+    if (!confirm("Remover este membro do projeto?")) return;
+    try {
+      await removeMember({ data: { id } });
+      toast.success("Membro removido.");
+      refresh();
+    } catch (e: any) { toast.error(e?.message ?? "Falha."); }
+  }
+  async function resend(id: string) {
+    try {
+      const inv = await resendInvitation({ data: { id } });
+      setLastLink(linkFor(inv.token));
+      toast.success("Convite renovado.");
+      refresh();
+    } catch (e: any) { toast.error(e?.message ?? "Falha."); }
+  }
+  async function revoke(id: string) {
+    if (!confirm("Revogar este convite?")) return;
+    try {
+      await revokeInvitation({ data: { id } });
+      toast.success("Convite revogado.");
+      refresh();
+    } catch (e: any) { toast.error(e?.message ?? "Falha."); }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Membros do projeto</CardTitle>
+          <Button size="sm" onClick={() => { setLastLink(null); setOpen(true); }}>
+            <Plus className="mr-1 h-4 w-4" /> Convidar membro
+          </Button>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {members.isPending ? (
+            <p className="text-sm text-muted-foreground">Carregando…</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-3">Nome</th>
+                  <th className="py-2 pr-3">E-mail</th>
+                  <th className="py-2 pr-3">Permissão</th>
+                  <th className="py-2 pr-3">Desde</th>
+                  <th className="py-2 pr-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(members.data ?? []).map((m) => (
+                  <tr key={m.id} className="border-t">
+                    <td className="py-2 pr-3 font-medium">{m.name || "—"}</td>
+                    <td className="py-2 pr-3">{m.email || m.user_id.slice(0, 8)}</td>
+                    <td className="py-2 pr-3">
+                      {m.role === "owner" ? (
+                        <span className={`inline-block rounded px-2 py-0.5 text-xs ${ROLE_BADGE[m.role]}`}>
+                          {ROLE_LABEL[m.role]}
+                        </span>
+                      ) : (
+                        <Select value={m.role} onValueChange={(v) => changeRole(m.id, v as ProjectRole)}>
+                          <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
+                            <SelectItem value="collaborator">{ROLE_LABEL.collaborator}</SelectItem>
+                            <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-xs text-muted-foreground">
+                      {m.accepted_at ? new Date(m.accepted_at).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-right">
+                      {m.role !== "owner" && (
+                        <Button size="sm" variant="ghost" onClick={() => kick(m.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {(members.data ?? []).length === 0 && (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Nenhum membro.</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Convites pendentes</CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto">
+          {invites.isPending ? (
+            <p className="text-sm text-muted-foreground">Carregando…</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-3">E-mail</th>
+                  <th className="py-2 pr-3">Permissão</th>
+                  <th className="py-2 pr-3">Status</th>
+                  <th className="py-2 pr-3">Expira</th>
+                  <th className="py-2 pr-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(invites.data ?? []).map((i) => (
+                  <tr key={i.id} className="border-t">
+                    <td className="py-2 pr-3">{i.email}</td>
+                    <td className="py-2 pr-3">
+                      <span className={`inline-block rounded px-2 py-0.5 text-xs ${ROLE_BADGE[i.role]}`}>
+                        {ROLE_LABEL[i.role]}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3 text-xs">{i.status}</td>
+                    <td className="py-2 pr-3 text-xs text-muted-foreground">
+                      {new Date(i.expires_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-2 pr-3 text-right space-x-1">
+                      <Button size="sm" variant="ghost" onClick={() => copy(linkFor(i.token))} title="Copiar link">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      {i.status !== "accepted" && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => resend(i.id)} title="Renovar">
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => revoke(i.id)} title="Revogar">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {(invites.data ?? []).length === 0 && (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Nenhum convite.</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Convidar membro</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">E-mail</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@empresa.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Permissão</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as ProjectRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
+                  <SelectItem value="collaborator">{ROLE_LABEL.collaborator}</SelectItem>
+                  <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {lastLink && (
+              <div className="rounded-md border bg-muted/50 p-3 text-xs space-y-2">
+                <p className="text-muted-foreground">Envie este link ao convidado:</p>
+                <div className="flex items-center gap-2">
+                  <Input value={lastLink} readOnly className="text-xs" />
+                  <Button size="sm" variant="outline" onClick={() => copy(lastLink)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
+            <Button onClick={submitInvite} disabled={busy || !email.trim()}>
+              <Send className="mr-1 h-4 w-4" /> {busy ? "Enviando…" : "Enviar convite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
