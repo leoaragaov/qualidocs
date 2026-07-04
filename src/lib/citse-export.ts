@@ -210,12 +210,23 @@ function buildMatriz(wb: ExcelJS.Workbook, data: CitseData) {
 
   data.userStories.forEach((us, idx) => {
     const row = 4 + idx;
-    const cover = cts.map((ct) => ct.idUs.split(/[,;\s]+/).includes(us.id));
-    const total = cover.filter(Boolean).length;
-    const pct = cts.length ? Math.round((total / cts.length) * 100) : 0;
+    const linked = cts.map((ct) => ct.idUs.split(/[,;\s]+/).includes(us.id));
+    const linkedCases = cts.filter((_, i) => linked[i]);
+    const passedCount = linkedCases.filter((ct) => ct.status === "Passou").length;
+    const linkedTotal = linkedCases.length;
+    const pct = linkedTotal ? Math.round((passedCount / linkedTotal) * 100) : 0;
+
+    const cellIcons = cts.map((ct, i) => {
+      if (!linked[i]) return "";
+      if (ct.status === "Passou") return "☑";
+      if (ct.status === "Falhou") return "☒";
+      if (ct.status === "Bloqueado") return "⛔";
+      return "☐";
+    });
 
     const desc = us.story.split("\n")[1]?.replace(/^Quero\s*/i, "") || us.story.split("\n")[0] || "";
-    const base = [us.id, us.modulo, desc, ...cover.map((b) => (b ? "✅" : "🔲")), `${pct}%`];
+    const pctText = linkedTotal ? `${pct}%` : "—";
+    const base = [us.id, us.modulo, desc, ...cellIcons, pctText];
     base.forEach((v, i) => {
       const c = ws.getCell(row, i + 1);
       c.value = v;
@@ -223,7 +234,8 @@ function buildMatriz(wb: ExcelJS.Workbook, data: CitseData) {
       if (i >= 3 && i < base.length - 1) c.alignment = { vertical: "middle", horizontal: "center" };
       if (i === base.length - 1) {
         c.alignment = { vertical: "middle", horizontal: "center" };
-        c.font = { name: "Calibri", size: 11, bold: true, color: { argb: total ? "FF0F7B3D" : "FFB42318" } };
+        const color = !linkedTotal ? "FF6B7280" : pct === 100 ? "FF0F7B3D" : pct > 0 ? "FFB45309" : "FFB42318";
+        c.font = { name: "Calibri", size: 11, bold: true, color: { argb: color } };
       }
     });
     ws.getRow(row).height = 24;
@@ -403,6 +415,11 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const stamp = new Date().toISOString().slice(0, 10);
-  const name = (d.project.projeto || "projeto").replace(/[^\w\-]+/g, "_");
+  const name = (d.project.projeto || "projeto")
+    .replace(/[^\w\s-]+/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_");
+
   saveAs(blob, `QualiDocs_Framework_QA_${name}_${stamp}.xlsx`);
 }
