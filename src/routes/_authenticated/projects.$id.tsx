@@ -717,7 +717,13 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
                 </Select>
               </Field>
               <Field label="Pré-condições (Pre-conditions)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
-              <Field label="Massa de Dados (Test Data)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
+              <Field label="Massa de Dados (Test Data)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => {
+                const v = e.target.value;
+                upd({ ...r, massa: v });
+                if (looksLikePlainCredential(v) && !looksLikePlainCredential(textValue(r?.massa))) {
+                  toast.warning("Aviso de Segurança: Evite inserir credenciais reais em ambientes de teste (Security Warning: Avoid entering real credentials in test environments)", { duration: 6000 });
+                }
+              }} /></Field>
               <Field label="Passos de Execução (Execution Steps)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
               <Field label="Resultado Esperado (Expected Result)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
               <Field label="Observações (Notes)" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
