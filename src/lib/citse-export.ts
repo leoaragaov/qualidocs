@@ -187,11 +187,11 @@ function buildTable(
 function buildMatriz(wb: ExcelJS.Workbook, data: CitseData) {
   const cts = data.casosTeste;
   const headers = [
-    { label: "ID_US", width: 16 },
-    { label: "Módulo", width: 24 },
-    { label: "Descrição da User Story", width: 40 },
+    { label: "ID da História de Usuário (User Story ID)", width: 28 },
+    { label: "Módulo (Module)", width: 24 },
+    { label: "Descrição da História de Usuário (User Story)", width: 40 },
     ...cts.map((c) => ({ label: c.id, width: 16 })),
-    { label: "Cobertura (%)", width: 14 },
+    { label: "Cobertura (Coverage %)", width: 18 },
   ];
   const ws = wb.addWorksheet("Matriz de Rastreabilidade", { views: [{ showGridLines: false }] });
   ws.columns = headers.map((h) => ({ width: h.width }));
