@@ -151,6 +151,7 @@ function DashboardPage() {
   const del = useServerFn(deleteProject);
   const doImport = useServerFn(importDraft);
   const join = useServerFn(joinProjectByCode);
+  const saveTags = useServerFn(updateProjectTags);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -158,12 +159,14 @@ function DashboardPage() {
 
   const [newProjOpen, setNewProjOpen] = useState(false);
   const [nome, setNome] = useState("");
+  const [newTags, setNewTags] = useState<ProjectTag[]>([]);
   const [delId, setDelId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [q, setQ] = useState("");
+  const [tagsEdit, setTagsEdit] = useState<{ id: string; name: string; tags: ProjectTag[] } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null));
@@ -171,15 +174,27 @@ function DashboardPage() {
   }, []);
 
   const createM = useMutation({
-    mutationFn: (name: string) => create({ data: { projeto: name } }),
+    mutationFn: (payload: { name: string; tags: ProjectTag[] }) =>
+      create({ data: { projeto: payload.name, tags: payload.tags } }),
     onSuccess: (row) => {
-      toast.success("Projeto criado");
+      toast.success("Projeto criado (Project created)");
       qc.invalidateQueries({ queryKey: ["my-projects"] });
-      setNewProjOpen(false); setNome("");
+      setNewProjOpen(false); setNome(""); setNewTags([]);
       navigate({ to: "/projects/$id", params: { id: row.id } });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const tagsM = useMutation({
+    mutationFn: (payload: { id: string; tags: ProjectTag[] }) => saveTags({ data: payload }),
+    onSuccess: () => {
+      toast.success("Tags atualizadas (Tags updated)");
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
+      setTagsEdit(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const delM = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
