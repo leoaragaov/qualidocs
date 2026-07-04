@@ -415,6 +415,11 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const stamp = new Date().toISOString().slice(0, 10);
-  const name = (d.project.projeto || "projeto").replace(/[^\w\-]+/g, "_");
+  const name = (d.project.projeto || "projeto")
+    .replace(/[^\w\s-]+/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_");
+
   saveAs(blob, `QualiDocs_Framework_QA_${name}_${stamp}.xlsx`);
 }
