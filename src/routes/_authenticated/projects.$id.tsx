@@ -780,7 +780,7 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
       {/* Filters */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Filtros</CardTitle>
+          <CardTitle className="text-base">Filtros (Filters)</CardTitle>
           {filtersActive && (
             <Button size="sm" variant="ghost" onClick={clearFilters}>Limpar filtros</Button>
           )}
@@ -796,7 +796,7 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Módulo">
+          <Field label="Módulo (Module)">
             <Select value={fModulo} onValueChange={setFModulo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -805,10 +805,10 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Executado de">
+          <Field label="Executado de (Executed From)">
             <Input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} />
           </Field>
-          <Field label="Executado até">
+          <Field label="Executado até (Executed To)">
             <Input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} />
           </Field>
         </CardContent>
