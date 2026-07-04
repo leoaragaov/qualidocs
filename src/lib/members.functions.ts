@@ -244,7 +244,20 @@ export const resendInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Look up the invitation's project to authorize the caller as a manager.
+    const { data: inv, error: invErr } = await supabaseAdmin
+      .from("project_invitations")
+      .select("project_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (invErr || !inv) throw new Error("Convite não encontrado.");
+    const { data: canManage, error: permErr } = await context.supabase
+      .rpc("tms_can_manage", { _pid: inv.project_id });
+    if (permErr) throw new Error(permErr.message);
+    if (!canManage) throw new Error("Sem permissão para renovar este convite.");
+
+    const { data: row, error } = await supabaseAdmin
       .from("project_invitations")
       .update({
         status: "pending",
