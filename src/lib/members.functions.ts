@@ -493,7 +493,7 @@ export const markNotificationsRead = createServerFn({ method: "POST" })
   });
 
 // ---------- list projects grouped by role ----------
-export type ProjectTag = { name: string; color: string };
+export type ProjectTag = { id: string; name: string; color: string };
 
 export type MyProjectSummary = {
   id: string;
@@ -522,10 +522,16 @@ export const listMyProjects = createServerFn({ method: "GET" })
       const ids = list.map((p) => p.id);
       if (!ids.length) return { owned: [], collaborating: [] };
 
-      const [membersRes, requestsRes] = await Promise.all([
+      const [membersRes, requestsRes, tagLinksRes] = await Promise.all([
         context.supabase.from("project_members").select("project_id,user_id,role,status").in("project_id", ids),
         context.supabase.from("access_requests").select("project_id").in("project_id", ids).eq("status", "pending"),
+        context.supabase
+          .from("project_tag_links")
+          .select("project_id, project_tags(id,name,color,created_at)")
+          .in("project_id", ids)
+          .order("created_at", { ascending: true }),
       ]);
+      if (tagLinksRes.error) throw new Error(tagLinksRes.error.message);
 
       const memberCount: Record<string, number> = {};
       const myRole: Record<string, ProjectRole> = {};
@@ -536,6 +542,13 @@ export const listMyProjects = createServerFn({ method: "GET" })
       const pending: Record<string, number> = {};
       (requestsRes.data ?? []).forEach((r: any) => {
         pending[r.project_id] = (pending[r.project_id] ?? 0) + 1;
+      });
+      const tagsByProject: Record<string, ProjectTag[]> = {};
+      (tagLinksRes.data ?? []).forEach((link: any) => {
+        const tag = link.project_tags;
+        if (!link.project_id || !tag?.id || typeof tag.name !== "string" || typeof tag.color !== "string") return;
+        if (!tagsByProject[link.project_id]) tagsByProject[link.project_id] = [];
+        tagsByProject[link.project_id].push({ id: tag.id, name: tag.name, color: tag.color });
       });
 
       const ownerIds = Array.from(new Set(list.map((p) => p.owner_id))).filter(Boolean);
@@ -562,9 +575,10 @@ export const listMyProjects = createServerFn({ method: "GET" })
         const role = myRole[p.id];
         if (!role) continue;
         const rawTags = Array.isArray(p.tags) ? p.tags : [];
-        const tags: ProjectTag[] = rawTags
+        const legacyTags: ProjectTag[] = rawTags
           .filter((t: any) => t && typeof t.name === "string" && typeof t.color === "string")
-          .map((t: any) => ({ name: t.name, color: t.color }));
+          .map((t: any, idx: number) => ({ id: `${p.id}-legacy-${idx}`, name: t.name, color: t.color }));
+        const tags = tagsByProject[p.id] ?? legacyTags;
         const summary: MyProjectSummary = {
           id: p.id,
           projeto: p.projeto ?? "",
