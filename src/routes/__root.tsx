@@ -78,6 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // Prevent Chrome/Google auto-translate from mutating text nodes, which
+      // breaks React reconciliation and causes "Failed to execute 'removeChild'
+      // on 'Node'" when opening Radix Select/Popover/Dialog.
+      { name: "google", content: "notranslate" },
       { title: "QualiDocs — Sistema de gerenciamento de testes" },
       { name: "description", content: "Plataforma completa de QA: plano de teste, user stories, execução, bugs e auditoria — com exportação para Excel." },
       { name: "author", content: "QualiDocs" },
