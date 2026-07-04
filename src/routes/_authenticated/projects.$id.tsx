@@ -288,6 +288,9 @@ function ProjectPage() {
             <Button onClick={handleExportPdf} disabled={exportingPdf}>
               <FileText className="mr-2 h-4 w-4" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setBackupOpen(true)} title="Backup e Recuperação (Backup & Recovery)">
+              <ShieldCheck className="mr-2 h-4 w-4" /> Backup (Backup & Recovery)
+            </Button>
             <Button variant="ghost" size="sm" asChild title="Minha conta">
               <Link to="/account"><Settings className="h-4 w-4" /></Link>
             </Button>
