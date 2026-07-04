@@ -255,6 +255,8 @@ function DashboardPage() {
     mutationFn: (id: string) => deleteGlobalTag({ data: { id } }),
     onSuccess: (_res, id) => {
       toast.success("Tag excluída (Tag deleted)");
+      setNewTagIds((current) => current.filter((tagId) => tagId !== id));
+      setTagsEdit((current) => current ? { ...current, tagIds: current.tagIds.filter((tagId) => tagId !== id) } : current);
       qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => (
         (old ?? []).filter((tag) => tag.id !== id)
       ));
@@ -497,7 +499,10 @@ function DashboardPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar (Cancel)</Button>
             <Button
-              onClick={() => nome.trim() && createM.mutate({ name: nome.trim(), tagIds: newTagIds })}
+              onClick={() => nome.trim() && createM.mutate({
+                name: nome.trim(),
+                tagIds: newTagIds.filter((id) => globalTags.some((tag) => tag.id === id)),
+              })}
               disabled={createM.isPending || !nome.trim()}
             >
               <Plus className="mr-2 h-4 w-4" /> Criar (Create)
