@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound,
@@ -164,21 +164,27 @@ function DashboardPage() {
   const doImport = useServerFn(importDraft);
   const join = useServerFn(joinProjectByCode);
   const saveTags = useServerFn(updateProjectTags);
+  const createGlobalTag = useServerFn(createGlobalProjectTag);
+  const updateGlobalTag = useServerFn(updateGlobalProjectTag);
+  const deleteGlobalTag = useServerFn(deleteGlobalProjectTag);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
   const { data, isPending } = useQuery(projectsQueryOptions());
+  const { data: globalTagsData = [] } = useQuery(globalTagsQueryOptions());
+  const globalTags = Array.isArray(globalTagsData) ? globalTagsData : [];
 
   const [newProjOpen, setNewProjOpen] = useState(false);
   const [nome, setNome] = useState("");
-  const [newTags, setNewTags] = useState<ProjectTag[]>([]);
+  const [newTagIds, setNewTagIds] = useState<string[]>([]);
   const [delId, setDelId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [q, setQ] = useState("");
-  const [tagsEdit, setTagsEdit] = useState<{ id: string; name: string; tags: ProjectTag[] } | null>(null);
+  const [tagsEdit, setTagsEdit] = useState<{ id: string; name: string; tagIds: string[] } | null>(null);
+  const [globalTagsOpen, setGlobalTagsOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null));
@@ -186,23 +192,59 @@ function DashboardPage() {
   }, []);
 
   const createM = useMutation({
-    mutationFn: (payload: { name: string; tags: ProjectTag[] }) =>
-      create({ data: { projeto: payload.name, tags: payload.tags } }),
+    mutationFn: (payload: { name: string; tagIds: string[] }) =>
+      create({ data: { projeto: payload.name, tagIds: payload.tagIds } }),
     onSuccess: (row) => {
       toast.success("Projeto criado (Project created)");
       qc.invalidateQueries({ queryKey: ["my-projects"] });
-      setNewProjOpen(false); setNome(""); setNewTags([]);
+      setNewProjOpen(false); setNome(""); setNewTagIds([]);
       navigate({ to: "/projects/$id", params: { id: row.id } });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const tagsM = useMutation({
-    mutationFn: (payload: { id: string; tags: ProjectTag[] }) => saveTags({ data: payload }),
-    onSuccess: () => {
+    mutationFn: (payload: { id: string; tagIds: string[] }) => saveTags({ data: payload }),
+    onSuccess: (res, vars) => {
       toast.success("Tags atualizadas (Tags updated)");
+      qc.setQueryData(projectsQueryOptions().queryKey, (old: { owned: MyProjectSummary[]; collaborating: MyProjectSummary[] } | undefined) => {
+        if (!old) return old;
+        const apply = (projects: MyProjectSummary[]) => projects.map((project) => (
+          project.id === vars.id ? { ...project, tags: (res.tags ?? []) as ProjectTag[] } : project
+        ));
+        return { owned: apply(old.owned), collaborating: apply(old.collaborating) };
+      });
       qc.invalidateQueries({ queryKey: ["my-projects"] });
       setTagsEdit(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const createGlobalTagM = useMutation({
+    mutationFn: (payload: { name: string; color: string }) => createGlobalTag({ data: payload }),
+    onSuccess: () => {
+      toast.success("Tag criada (Tag created)");
+      qc.invalidateQueries({ queryKey: ["global-project-tags"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateGlobalTagM = useMutation({
+    mutationFn: (payload: { id: string; name: string; color: string }) => updateGlobalTag({ data: payload }),
+    onSuccess: () => {
+      toast.success("Tag atualizada (Tag updated)");
+      qc.invalidateQueries({ queryKey: ["global-project-tags"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteGlobalTagM = useMutation({
+    mutationFn: (id: string) => deleteGlobalTag({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Tag excluída (Tag deleted)");
+      qc.invalidateQueries({ queryKey: ["global-project-tags"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -339,6 +381,9 @@ function DashboardPage() {
               <Upload className="mr-2 h-4 w-4" /> Importar rascunho (Import draft)
             </Button>
           )}
+          <Button variant="outline" onClick={() => setGlobalTagsOpen(true)} className="h-10">
+            <Tag className="mr-2 h-4 w-4" /> Gerenciar Tags Globais (Manage Global Tags)
+          </Button>
           <Button onClick={() => setNewProjOpen(true)} className="h-10">
             <Plus className="mr-2 h-4 w-4" /> Novo projeto (New project)
           </Button>
@@ -366,7 +411,7 @@ function DashboardPage() {
                 key={p.id}
                 p={p}
                 onDelete={setDelId}
-                onEditTags={() => setTagsEdit({ id: p.id, name: p.projeto, tags: p.tags ?? [] })}
+                onEditTags={() => setTagsEdit({ id: p.id, name: p.projeto, tagIds: (p.tags ?? []).map((tag) => tag.id) })}
               />
             ))}
           </div>
@@ -395,7 +440,7 @@ function DashboardPage() {
       </main>
 
       {/* Novo projeto */}
-      <Dialog open={newProjOpen} onOpenChange={(o) => { setNewProjOpen(o); if (!o) { setNome(""); setNewTags([]); } }}>
+      <Dialog open={newProjOpen} onOpenChange={(o) => { setNewProjOpen(o); if (!o) { setNome(""); setNewTagIds([]); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Novo projeto (New Project)</DialogTitle>
@@ -412,14 +457,24 @@ function DashboardPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Tags do Projeto (Project Tags)</Label>
-              <TagEditor value={newTags} onChange={setNewTags} />
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Tags do Projeto (Project Tags)</Label>
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setGlobalTagsOpen(true)}>
+                  Gerenciar Tags Globais (Manage Global Tags)
+                </Button>
+              </div>
+              <ProjectTagSelector
+                tags={globalTags}
+                selectedIds={newTagIds}
+                onChange={setNewTagIds}
+                onManageGlobal={() => setGlobalTagsOpen(true)}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar (Cancel)</Button>
             <Button
-              onClick={() => nome.trim() && createM.mutate({ name: nome.trim(), tags: newTags })}
+              onClick={() => nome.trim() && createM.mutate({ name: nome.trim(), tagIds: newTagIds })}
               disabled={createM.isPending || !nome.trim()}
             >
               <Plus className="mr-2 h-4 w-4" /> Criar (Create)
@@ -432,21 +487,23 @@ function DashboardPage() {
       <Dialog open={!!tagsEdit} onOpenChange={(o) => !o && setTagsEdit(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Tags do Projeto (Project Tags)</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Gerenciar Tags do Projeto (Manage Project Tags)</DialogTitle>
             <DialogDescription>{tagsEdit?.name}</DialogDescription>
           </DialogHeader>
           <div className="py-2">
             {tagsEdit && (
-              <TagEditor
-                value={tagsEdit.tags}
-                onChange={(tags) => setTagsEdit((prev) => (prev ? { ...prev, tags } : prev))}
+              <ProjectTagSelector
+                tags={globalTags}
+                selectedIds={tagsEdit.tagIds}
+                onChange={(tagIds) => setTagsEdit((prev) => (prev ? { ...prev, tagIds } : prev))}
+                onManageGlobal={() => setGlobalTagsOpen(true)}
               />
             )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTagsEdit(null)}>Cancelar (Cancel)</Button>
             <Button
-              onClick={() => tagsEdit && tagsM.mutate({ id: tagsEdit.id, tags: tagsEdit.tags })}
+              onClick={() => tagsEdit && tagsM.mutate({ id: tagsEdit.id, tagIds: tagsEdit.tagIds })}
               disabled={tagsM.isPending}
             >
               <Check className="mr-2 h-4 w-4" /> Salvar (Save)
@@ -454,6 +511,17 @@ function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Gerenciar Tags Globais */}
+      <GlobalTagsDialog
+        open={globalTagsOpen}
+        onOpenChange={setGlobalTagsOpen}
+        tags={globalTags}
+        onCreate={(payload) => createGlobalTagM.mutate(payload)}
+        onUpdate={(payload) => updateGlobalTagM.mutate(payload)}
+        onDelete={(id) => deleteGlobalTagM.mutate(id)}
+        busy={createGlobalTagM.isPending || updateGlobalTagM.isPending || deleteGlobalTagM.isPending}
+      />
 
 
       {/* Join code */}
