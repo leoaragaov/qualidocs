@@ -814,8 +814,8 @@ function BugDialog({ open, ct, projectId, onClose, onSave }: {
         <div className="grid gap-3 md:grid-cols-2">
           <Field label="ID do Bug"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
           <Field label="Severidade">
-            <Select value={b.severidade as string} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={(b.severidade as string) ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
+              <SelectTrigger><SelectValue placeholder="Severidade" /></SelectTrigger>
               <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
