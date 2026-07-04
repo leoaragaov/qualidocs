@@ -600,10 +600,10 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
         render={(r, upd) => (
           (filter === "all" || filter === r.id || !r.id) && (
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="ID_US"><Input placeholder="US-MOD-001" value={textValue(r?.us_id)} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
-              <Field label="Módulo"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
-              <Field label="Ator / Perfil"><Input value={textValue(r?.ator)} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
-              <Field label="User Story (Eu como… Quero… Para que…)" className="md:col-span-3">
+              <Field label="ID da História de Usuário (User Story ID)"><Input placeholder="US-MOD-001" value={textValue(r?.us_id)} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
+              <Field label="Módulo (Module)"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Ator / Perfil (Actor / Role)"><Input value={textValue(r?.ator)} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
+              <Field label="História de Usuário (User Story) — Eu como… Quero… Para que…" className="md:col-span-3">
                 <Textarea rows={3} value={textValue(r?.story)} onChange={(e) => upd({ ...r, story: e.target.value })} />
               </Field>
               <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio1)} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
