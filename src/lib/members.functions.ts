@@ -99,8 +99,17 @@ export const inviteMember = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // Auth: user must be manager
-    const { data: mgr } = await context.supabase.rpc("tms_can_manage", { _pid: data.project_id });
-    if (!mgr) throw new Error("Sem permissão para convidar membros.");
+    const { data: myMember, error: memberErr } = await context.supabase
+      .from("project_members")
+      .select("role")
+      .eq("project_id", data.project_id)
+      .eq("user_id", context.userId)
+      .eq("status", "accepted")
+      .maybeSingle();
+    if (memberErr) throw new Error(memberErr.message);
+    if (myMember?.role !== "owner" && myMember?.role !== "admin") {
+      throw new Error("Sem permissão para convidar membros.");
+    }
 
     const email = data.email.trim().toLowerCase();
 
