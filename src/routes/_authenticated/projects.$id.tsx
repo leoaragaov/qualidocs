@@ -949,18 +949,18 @@ function BugDialog({ open, ct, projectId, onClose, onSave }: {
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle className="flex items-center gap-2"><BugIcon className="h-5 w-5 text-red-600" /> Registrar Bug</DialogTitle></DialogHeader>
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="ID do Bug"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
-          <Field label="Severidade">
+          <Field label="ID do Bug (Bug ID)"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+          <Field label="Severidade (Severity)">
             <Select value={(b.severidade as string) ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
-              <SelectTrigger><SelectValue placeholder="Severidade" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Severidade (Severity)" /></SelectTrigger>
               <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <Field label="Título" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
-          <Field label="Passos (do CT)" className="md:col-span-2"><Textarea rows={3} value={b.passos ?? ""} onChange={(e) => setB({ ...b, passos: e.target.value })} /></Field>
-          <Field label="Massa de Dados (do CT)" className="md:col-span-2"><Textarea rows={2} value={b.massa ?? ""} onChange={(e) => setB({ ...b, massa: e.target.value })} /></Field>
-          <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
-          <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+          <Field label="Título do Bug (Bug Title)" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+          <Field label="Passos de Execução (Execution Steps) — do CT" className="md:col-span-2"><Textarea rows={3} value={b.passos ?? ""} onChange={(e) => setB({ ...b, passos: e.target.value })} /></Field>
+          <Field label="Massa de Dados (Test Data) — do CT" className="md:col-span-2"><Textarea rows={2} value={b.massa ?? ""} onChange={(e) => setB({ ...b, massa: e.target.value })} /></Field>
+          <Field label="Comportamento Atual (Actual Behavior)"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+          <Field label="Comportamento Esperado (Expected Behavior)"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
           <Field label="Status">
             <Select value={(b.status as string) ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
               <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
