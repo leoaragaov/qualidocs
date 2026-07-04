@@ -119,6 +119,74 @@ function ProjectPage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["project", id] });
 
+  // ---------- Reactive derived statuses (US + Cronograma) ----------
+  const rawSchedule = useMemo(
+    () => (Array.isArray(data?.schedule) ? data!.schedule.filter(Boolean) : []),
+    [data?.schedule],
+  );
+  const rawUS = useMemo(
+    () => (Array.isArray(data?.userStories) ? data!.userStories.filter(Boolean) : []),
+    [data?.userStories],
+  );
+  const rawCT = useMemo(
+    () => (Array.isArray(data?.testCases) ? data!.testCases.filter(Boolean) : []),
+    [data?.testCases],
+  );
+  const rawBugs = useMemo(
+    () => (Array.isArray(data?.bugs) ? data!.bugs.filter(Boolean) : []),
+    [data?.bugs],
+  );
+
+  const derivedUS = useMemo(
+    () => rawUS.map((u) => ({ ...u, status: deriveUsStatus(u, rawCT) })),
+    [rawUS, rawCT],
+  );
+  const derivedSchedule = useMemo(
+    () =>
+      rawSchedule.map((r) => {
+        const s = deriveScheduleStatus(r, rawCT, rawBugs);
+        return s ? { ...r, status: s } : r;
+      }),
+    [rawSchedule, rawCT, rawBugs],
+  );
+
+  const upUS = useServerFn(upsertUserStory);
+  const upSched = useServerFn(upsertSchedule);
+  const syncingRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!data?.project) return;
+    const tasks: Promise<unknown>[] = [];
+    rawUS.forEach((cur, i) => {
+      const target = derivedUS[i]?.status;
+      if (!cur?.id || !target || cur.status === target) return;
+      const key = `us:${cur.id}:${target}`;
+      if (syncingRef.current.has(key)) return;
+      syncingRef.current.add(key);
+      tasks.push(
+        upUS({ data: { ...cur, status: target } as any }).finally(() =>
+          syncingRef.current.delete(key),
+        ),
+      );
+    });
+    rawSchedule.forEach((cur, i) => {
+      const target = derivedSchedule[i]?.status;
+      if (!cur?.id || !target || cur.status === target) return;
+      const key = `sc:${cur.id}:${target}`;
+      if (syncingRef.current.has(key)) return;
+      syncingRef.current.add(key);
+      tasks.push(
+        upSched({ data: { ...cur, status: target } as any }).finally(() =>
+          syncingRef.current.delete(key),
+        ),
+      );
+    });
+    if (tasks.length) {
+      Promise.allSettled(tasks).then(() => {
+        qc.invalidateQueries({ queryKey: ["project", id] });
+      });
+    }
+  }, [data?.project, rawUS, rawSchedule, derivedUS, derivedSchedule, upUS, upSched, qc, id]);
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -160,11 +228,11 @@ function ProjectPage() {
   if (error || !data?.project) return <RequestAccessScreen projectId={id} onSignOut={signOut} />;
 
   const project = data.project;
-  const schedule = Array.isArray(data.schedule) ? data.schedule.filter(Boolean) : [];
+  const schedule = derivedSchedule;
   const risks = Array.isArray(data.risks) ? data.risks.filter(Boolean) : [];
-  const userStories = Array.isArray(data.userStories) ? data.userStories.filter(Boolean) : [];
-  const testCases = Array.isArray(data.testCases) ? data.testCases.filter(Boolean) : [];
-  const bugs = Array.isArray(data.bugs) ? data.bugs.filter(Boolean) : [];
+  const userStories = derivedUS;
+  const testCases = rawCT;
+  const bugs = rawBugs;
   const code = project?.codigo_acesso || "";
   async function copyCode() {
     if (!code) return;
