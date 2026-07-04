@@ -503,7 +503,10 @@ function DashboardPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTagsEdit(null)}>Cancelar (Cancel)</Button>
             <Button
-              onClick={() => tagsEdit && tagsM.mutate({ id: tagsEdit.id, tagIds: tagsEdit.tagIds })}
+              onClick={() => tagsEdit && tagsM.mutate({
+                id: tagsEdit.id,
+                tagIds: tagsEdit.tagIds.filter((id) => globalTags.some((tag) => tag.id === id)),
+              })}
               disabled={tagsM.isPending}
             >
               <Check className="mr-2 h-4 w-4" /> Salvar (Save)
@@ -580,7 +583,7 @@ function TagBadges({ tags }: { tags: ProjectTag[] }) {
         const s = tagStyle(t.color);
         return (
           <span
-            key={`${t.name}-${i}`}
+            key={t.id || `${t.name}-${i}`}
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
           >
             {t.name}
@@ -591,41 +594,197 @@ function TagBadges({ tags }: { tags: ProjectTag[] }) {
   );
 }
 
-function TagEditor({ value, onChange }: { value: ProjectTag[]; onChange: (t: ProjectTag[]) => void }) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<string>(TAG_COLORS[0].name);
+function ProjectTagSelector({
+  tags,
+  selectedIds,
+  onChange,
+  onManageGlobal,
+}: {
+  tags: GlobalProjectTag[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  onManageGlobal: () => void;
+}) {
+  function toggle(id: string, checked: boolean) {
+    const current = new Set(selectedIds);
+    if (checked) current.add(id);
+    else current.delete(id);
+    onChange(Array.from(current));
+  }
 
-  function addTag() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    if (value.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) return;
-    onChange([...value, { name: trimmed, color }]);
-    setName("");
+  if (tags.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
+        <p className="text-xs text-muted-foreground">Nenhuma tag global criada (No global tags created)</p>
+        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onManageGlobal}>
+          <Plus className="mr-2 h-4 w-4" /> Criar Tag Global (Create Global Tag)
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
-        {value.length === 0 && (
-          <span className="text-xs text-muted-foreground italic">Nenhuma tag adicionada (No tags added)</span>
-        )}
-        {value.map((t, i) => {
-          const s = tagStyle(t.color);
+      <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+        {tags.map((tag) => {
+          const style = tagStyle(tag.color);
+          const checked = selectedIds.includes(tag.id);
           return (
-            <span
-              key={`${t.name}-${i}`}
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
+            <label
+              key={tag.id}
+              className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-slate-50"
             >
-              {t.name}
-              <button
-                type="button"
-                onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-                className="hover:opacity-70"
-                aria-label="Remover tag"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
+              <Checkbox checked={checked} onCheckedChange={(value) => toggle(tag.id, value === true)} />
+              <span className={`inline-flex min-w-0 flex-1 items-center rounded-full px-2.5 py-1 text-xs font-medium ${style.bg} ${style.text}`}>
+                <span className="truncate">{tag.name}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={onManageGlobal}>
+        <Settings className="mr-2 h-3.5 w-3.5" /> Gerenciar Tags Globais (Manage Global Tags)
+      </Button>
+    </div>
+  );
+}
+
+function GlobalTagsDialog({
+  open,
+  onOpenChange,
+  tags,
+  onCreate,
+  onUpdate,
+  onDelete,
+  busy,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tags: GlobalProjectTag[];
+  onCreate: (payload: { name: string; color: string }) => void;
+  onUpdate: (payload: { id: string; name: string; color: string }) => void;
+  onDelete: (id: string) => void;
+  busy: boolean;
+}) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(TAG_COLORS[0].name);
+  const [editing, setEditing] = useState<{ id: string; name: string; color: string } | null>(null);
+
+  function createTag() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreate({ name: trimmed, color });
+    setName("");
+  }
+
+  function startEdit(tag: GlobalProjectTag) {
+    setEditing({ id: tag.id, name: tag.name, color: tag.color });
+  }
+
+  function saveEdit() {
+    if (!editing?.name.trim()) return;
+    onUpdate({ id: editing.id, name: editing.name.trim(), color: editing.color });
+    setEditing(null);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { onOpenChange(next); if (!next) setEditing(null); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Gerenciar Tags Globais (Manage Global Tags)</DialogTitle>
+          <DialogDescription>Crie, edite ou exclua tags reutilizáveis dos projetos (Create, edit, or delete reusable project tags).</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-3">
+            <Label className="text-xs text-muted-foreground">Nova Tag Global (New Global Tag)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createTag(); } }}
+                placeholder="Nome da tag (Tag name)"
+                className="h-9 flex-1 bg-white"
+                maxLength={40}
+              />
+              <Button type="button" size="sm" onClick={createTag} disabled={busy || !name.trim()}>
+                <Plus className="mr-2 h-4 w-4" /> Criar (Create)
+              </Button>
+            </div>
+            <ColorPicker value={color} onChange={setColor} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Tags Existentes (Existing Tags)</Label>
+            <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+              {tags.length === 0 && (
+                <div className="py-6 text-center text-xs text-muted-foreground">Nenhuma tag cadastrada (No tags registered)</div>
+              )}
+              {tags.map((tag) => {
+                const style = tagStyle(tag.color);
+                const isEditing = editing?.id === tag.id;
+                return (
+                  <div key={tag.id} className="rounded-md border border-slate-100 p-2">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={editing.name}
+                          onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                          placeholder="Nome da tag (Tag name)"
+                          className="h-9"
+                          maxLength={40}
+                        />
+                        <ColorPicker value={editing.color} onChange={(next) => setEditing({ ...editing, color: next })} />
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancelar (Cancel)</Button>
+                          <Button type="button" size="sm" onClick={saveEdit} disabled={busy || !editing.name.trim()}>
+                            <Check className="mr-2 h-4 w-4" /> Salvar (Save)
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className={`min-w-0 flex-1 rounded-full px-2.5 py-1 text-xs font-medium ${style.bg} ${style.text}`}>
+                          <span className="block truncate">{tag.name}</span>
+                        </span>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(tag)} title="Editar Tag (Edit Tag)">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tag.id)} title="Excluir Tag (Delete Tag)" disabled={busy}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar (Close)</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ColorPicker({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {TAG_COLORS.map((c) => (
+        <button
+          key={c.name}
+          type="button"
+          title={c.label}
+          onClick={() => onChange(c.name)}
+          className={`h-6 w-6 rounded-full ${c.dot} ring-2 ring-offset-1 transition ${value === c.name ? "ring-slate-800" : "ring-transparent"}`}
+        />
+      ))}
+    </div>
+  );
+}
           );
         })}
       </div>
