@@ -370,6 +370,7 @@ export type Database = {
           owner_id: string
           projeto: string
           responsavel: string
+          tags: Json
           ultima_revisao: string | null
           updated_at: string
           versao: string
@@ -386,6 +387,7 @@ export type Database = {
           owner_id: string
           projeto?: string
           responsavel?: string
+          tags?: Json
           ultima_revisao?: string | null
           updated_at?: string
           versao?: string
@@ -402,6 +404,7 @@ export type Database = {
           owner_id?: string
           projeto?: string
           responsavel?: string
+          tags?: Json
           ultima_revisao?: string | null
           updated_at?: string
           versao?: string
@@ -651,6 +654,7 @@ export type Database = {
           owner_id: string
           projeto: string
           responsavel: string
+          tags: Json
           ultima_revisao: string | null
           updated_at: string
           versao: string

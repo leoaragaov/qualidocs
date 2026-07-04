@@ -5,8 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound,
-  Search, Users, Crown, Clock, Bell, Check, CheckCheck, Settings,
+  Search, Users, Crown, Clock, Bell, Check, CheckCheck, Settings, Tag, X, Pencil,
 } from "lucide-react";
+
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,27 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { createProject, deleteProject, importDraft } from "@/lib/tms.functions";
+import { createProject, deleteProject, importDraft, updateProjectTags } from "@/lib/tms.functions";
 import {
   joinProjectByCode, listMyProjects, listNotifications, markNotificationsRead,
-  type MyProjectSummary, type NotificationRow,
+  type MyProjectSummary, type NotificationRow, type ProjectTag,
 } from "@/lib/members.functions";
+
+// Palette of pre-defined tag colors (Tailwind-based)
+const TAG_COLORS: { name: string; label: string; bg: string; text: string; ring: string; dot: string }[] = [
+  { name: "blue",   label: "Azul (Blue)",       bg: "bg-blue-100",   text: "text-blue-800",   ring: "ring-blue-300",   dot: "bg-blue-500" },
+  { name: "green",  label: "Verde (Green)",     bg: "bg-green-100",  text: "text-green-800",  ring: "ring-green-300",  dot: "bg-green-500" },
+  { name: "red",    label: "Vermelho (Red)",    bg: "bg-red-100",    text: "text-red-800",    ring: "ring-red-300",    dot: "bg-red-500" },
+  { name: "yellow", label: "Amarelo (Yellow)",  bg: "bg-yellow-100", text: "text-yellow-800", ring: "ring-yellow-300", dot: "bg-yellow-500" },
+  { name: "purple", label: "Roxo (Purple)",     bg: "bg-purple-100", text: "text-purple-800", ring: "ring-purple-300", dot: "bg-purple-500" },
+  { name: "orange", label: "Laranja (Orange)",  bg: "bg-orange-100", text: "text-orange-800", ring: "ring-orange-300", dot: "bg-orange-500" },
+  { name: "gray",   label: "Cinza (Gray)",      bg: "bg-slate-100",  text: "text-slate-700",  ring: "ring-slate-300",  dot: "bg-slate-500" },
+];
+
+function tagStyle(color: string) {
+  return TAG_COLORS.find((c) => c.name === color) ?? TAG_COLORS[TAG_COLORS.length - 1];
+}
+
 
 const projectsQueryOptions = () => ({
   queryKey: ["my-projects"] as const,
@@ -43,7 +60,7 @@ const notificationsQueryOptions = () => ({
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
-  head: () => ({ meta: [{ title: "Meus Projetos · QualiDocs" }] }),
+  head: () => ({ meta: [{ title: "QualiDocs · Meus Projetos (My Projects)" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
   pendingComponent: ProjectsLoading,
@@ -123,17 +140,19 @@ function fmt(d: string) {
 }
 
 function roleLabel(r: MyProjectSummary["my_role"]) {
-  return r === "owner" ? "Proprietário"
-    : r === "admin" ? "Administrador"
-    : r === "collaborator" ? "Colaborador"
-    : "Visualizador";
+  return r === "owner" ? "Proprietário (Owner)"
+    : r === "admin" ? "Administrador (Admin)"
+    : r === "collaborator" ? "Colaborador (Collaborator)"
+    : "Visualizador (Viewer)";
 }
+
 
 function DashboardPage() {
   const create = useServerFn(createProject);
   const del = useServerFn(deleteProject);
   const doImport = useServerFn(importDraft);
   const join = useServerFn(joinProjectByCode);
+  const saveTags = useServerFn(updateProjectTags);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -141,12 +160,14 @@ function DashboardPage() {
 
   const [newProjOpen, setNewProjOpen] = useState(false);
   const [nome, setNome] = useState("");
+  const [newTags, setNewTags] = useState<ProjectTag[]>([]);
   const [delId, setDelId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [q, setQ] = useState("");
+  const [tagsEdit, setTagsEdit] = useState<{ id: string; name: string; tags: ProjectTag[] } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null));
@@ -154,15 +175,27 @@ function DashboardPage() {
   }, []);
 
   const createM = useMutation({
-    mutationFn: (name: string) => create({ data: { projeto: name } }),
+    mutationFn: (payload: { name: string; tags: ProjectTag[] }) =>
+      create({ data: { projeto: payload.name, tags: payload.tags } }),
     onSuccess: (row) => {
-      toast.success("Projeto criado");
+      toast.success("Projeto criado (Project created)");
       qc.invalidateQueries({ queryKey: ["my-projects"] });
-      setNewProjOpen(false); setNome("");
+      setNewProjOpen(false); setNome(""); setNewTags([]);
       navigate({ to: "/projects/$id", params: { id: row.id } });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const tagsM = useMutation({
+    mutationFn: (payload: { id: string; tags: ProjectTag[] }) => saveTags({ data: payload }),
+    onSuccess: () => {
+      toast.success("Tags atualizadas (Tags updated)");
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
+      setTagsEdit(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const delM = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
@@ -255,7 +288,7 @@ function DashboardPage() {
               <FileSpreadsheet className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">QualiDocs · Meus Projetos</h1>
+              <h1 className="text-lg font-semibold tracking-tight">QualiDocs · Meus Projetos (My Projects)</h1>
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
@@ -279,7 +312,7 @@ function DashboardPage() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Pesquisar projeto ou proprietário…"
+              placeholder="Pesquisar projeto ou proprietário... (Search project or owner...)"
               className="pl-9 h-10 rounded-lg bg-white"
             />
           </div>
@@ -288,15 +321,15 @@ function DashboardPage() {
             onClick={() => setJoinOpen(true)}
             className="h-10 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
           >
-            <KeyRound className="mr-2 h-4 w-4" /> Entrar em um projeto
+            <KeyRound className="mr-2 h-4 w-4" /> Entrar em um projeto (Enter a project)
           </Button>
           {hasDraft && (
             <Button variant="outline" onClick={() => importM.mutate()} disabled={importM.isPending} className="h-10">
-              <Upload className="mr-2 h-4 w-4" /> Importar rascunho
+              <Upload className="mr-2 h-4 w-4" /> Importar rascunho (Import draft)
             </Button>
           )}
           <Button onClick={() => setNewProjOpen(true)} className="h-10">
-            <Plus className="mr-2 h-4 w-4" /> Novo projeto
+            <Plus className="mr-2 h-4 w-4" /> Novo projeto (New project)
           </Button>
         </div>
 
@@ -304,20 +337,27 @@ function DashboardPage() {
         <section className="space-y-4">
           <div className="flex items-baseline gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Crown className="h-4 w-4 text-amber-500" /> Meus projetos
+              <Crown className="h-4 w-4 text-amber-500" /> Meus Projetos (My Projects)
             </h2>
             <span className="text-xs text-muted-foreground">{ownedF.length}</span>
           </div>
-          {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
+          {isPending && <p className="text-sm text-muted-foreground">Carregando… (Loading…)</p>}
           {!isPending && ownedF.length === 0 && (
             <Card className="rounded-xl border-dashed border-slate-300 bg-white">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Você ainda não criou nenhum projeto. Clique em <b>Novo projeto</b> para começar.
+                Você ainda não criou nenhum projeto. Clique em <b>Novo projeto (New project)</b> para começar.
               </CardContent>
             </Card>
           )}
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {ownedF.map((p) => <OwnerCard key={p.id} p={p} onDelete={setDelId} />)}
+            {ownedF.map((p) => (
+              <OwnerCard
+                key={p.id}
+                p={p}
+                onDelete={setDelId}
+                onEditTags={() => setTagsEdit({ id: p.id, name: p.projeto, tags: p.tags ?? [] })}
+              />
+            ))}
           </div>
         </section>
 
@@ -325,7 +365,8 @@ function DashboardPage() {
         <section className="space-y-4">
           <div className="flex items-baseline gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Projetos em que colaboro
+              <Users className="h-4 w-4 text-primary" /> Projetos em que Colaboro (Projects I Collaborate On)
+
             </h2>
             <span className="text-xs text-muted-foreground">{collabF.length}</span>
           </div>
@@ -343,30 +384,66 @@ function DashboardPage() {
       </main>
 
       {/* Novo projeto */}
-      <Dialog open={newProjOpen} onOpenChange={setNewProjOpen}>
+      <Dialog open={newProjOpen} onOpenChange={(o) => { setNewProjOpen(o); if (!o) { setNome(""); setNewTags([]); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Novo projeto</DialogTitle>
-            <DialogDescription>Dê um nome ao seu projeto. Você poderá configurar tudo mais depois.</DialogDescription>
+            <DialogTitle>Novo projeto (New Project)</DialogTitle>
+            <DialogDescription>Dê um nome ao seu projeto e adicione tags. Você poderá configurar tudo mais depois.</DialogDescription>
           </DialogHeader>
-          <div className="py-2 space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Nome do projeto</Label>
-            <Input
-              autoFocus
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex.: Plataforma QualiDocs — Onboarding"
-              onKeyDown={(e) => { if (e.key === "Enter" && nome.trim()) createM.mutate(nome.trim()); }}
-            />
+          <div className="py-2 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome do projeto (Project Name)</Label>
+              <Input
+                autoFocus
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex.: Plataforma QualiDocs — Onboarding"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Tags do Projeto (Project Tags)</Label>
+              <TagEditor value={newTags} onChange={setNewTags} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar</Button>
-            <Button onClick={() => nome.trim() && createM.mutate(nome.trim())} disabled={createM.isPending || !nome.trim()}>
-              <Plus className="mr-2 h-4 w-4" /> Criar
+            <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar (Cancel)</Button>
+            <Button
+              onClick={() => nome.trim() && createM.mutate({ name: nome.trim(), tags: newTags })}
+              disabled={createM.isPending || !nome.trim()}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Criar (Create)
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Editar Tags */}
+      <Dialog open={!!tagsEdit} onOpenChange={(o) => !o && setTagsEdit(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Tags do Projeto (Project Tags)</DialogTitle>
+            <DialogDescription>{tagsEdit?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            {tagsEdit && (
+              <TagEditor
+                value={tagsEdit.tags}
+                onChange={(tags) => setTagsEdit((prev) => (prev ? { ...prev, tags } : prev))}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTagsEdit(null)}>Cancelar (Cancel)</Button>
+            <Button
+              onClick={() => tagsEdit && tagsM.mutate({ id: tagsEdit.id, tags: tagsEdit.tags })}
+              disabled={tagsM.isPending}
+            >
+              <Check className="mr-2 h-4 w-4" /> Salvar (Save)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Join code */}
       <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) setJoinCode(""); }}>
@@ -416,14 +493,99 @@ function DashboardPage() {
   );
 }
 
-function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string) => void }) {
+function TagBadges({ tags }: { tags: ProjectTag[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {tags.map((t, i) => {
+        const s = tagStyle(t.color);
+        return (
+          <span
+            key={`${t.name}-${i}`}
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
+          >
+            {t.name}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function TagEditor({ value, onChange }: { value: ProjectTag[]; onChange: (t: ProjectTag[]) => void }) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(TAG_COLORS[0].name);
+
+  function addTag() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (value.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) return;
+    onChange([...value, { name: trimmed, color }]);
+    setName("");
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+        {value.length === 0 && (
+          <span className="text-xs text-muted-foreground italic">Nenhuma tag adicionada (No tags added)</span>
+        )}
+        {value.map((t, i) => {
+          const s = tagStyle(t.color);
+          return (
+            <span
+              key={`${t.name}-${i}`}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
+            >
+              {t.name}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                className="hover:opacity-70"
+                aria-label="Remover tag"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+          placeholder="Nome da tag (Tag name)"
+          className="h-9 flex-1"
+          maxLength={40}
+        />
+        <Button type="button" size="sm" variant="secondary" onClick={addTag} disabled={!name.trim()}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {TAG_COLORS.map((c) => (
+          <button
+            key={c.name}
+            type="button"
+            title={c.label}
+            onClick={() => setColor(c.name)}
+            className={`h-6 w-6 rounded-full ${c.dot} ring-2 ring-offset-1 transition ${color === c.name ? "ring-slate-800" : "ring-transparent"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OwnerCard({ p, onDelete, onEditTags }: { p: MyProjectSummary; onDelete: (id: string) => void; onEditTags: () => void }) {
   const id = p?.id ?? "";
   return (
     <Card className="group rounded-2xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-0"><Crown className="h-3 w-3 mr-1" /> Proprietário</Badge>
+            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-0"><Crown className="h-3 w-3 mr-1" /> Proprietário (Owner)</Badge>
             {(p?.pending_requests ?? 0) > 0 && (
               <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-0">
                 {(p?.pending_requests ?? 0)} solicitação{(p?.pending_requests ?? 0) > 1 ? "s" : ""}
@@ -442,13 +604,26 @@ function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string
           <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {(p?.member_count ?? 0)} {(p?.member_count ?? 0) === 1 ? "membro" : "membros"}</span>
           <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p?.updated_at ?? "")}</span>
         </div>
-        {p?.codigo_acesso && (
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">
-            <KeyRound className="h-3 w-3" /> {p?.codigo_acesso}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            {p?.tags && p.tags.length > 0 ? (
+              <TagBadges tags={p.tags} />
+            ) : (
+              <span className="text-[11px] text-muted-foreground italic">Sem tags (No tags)</span>
+            )}
           </div>
-        )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={onEditTags}
+            title="Editar tags (Edit tags)"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         <Button asChild size="sm" className="w-full rounded-lg">
-          <Link to="/projects/$id" params={{ id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/projects/$id" params={{ id }}>Entrar (Enter) <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </CardContent>
     </Card>
@@ -465,7 +640,7 @@ function CollabCard({ p }: { p: MyProjectSummary }) {
         </div>
         <CardTitle className="mt-2 text-base truncate">{p?.projeto || "(sem nome)"}</CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> {p?.owner_name || "Proprietário"}
+          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> Proprietário (Owner): {p?.owner_name || "—"}
         </p>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
@@ -474,13 +649,15 @@ function CollabCard({ p }: { p: MyProjectSummary }) {
           <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {(p?.member_count ?? 0)}</span>
           <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p?.updated_at ?? "")}</span>
         </div>
+        {p?.tags && p.tags.length > 0 && <TagBadges tags={p.tags} />}
         <Button asChild size="sm" variant="secondary" className="w-full rounded-lg">
-          <Link to="/projects/$id" params={{ id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/projects/$id" params={{ id }}>Entrar (Enter) <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </CardContent>
     </Card>
   );
 }
+
 
 function notificationText(n: NotificationRow): string {
   const actor = n?.actor_name || "Alguém";

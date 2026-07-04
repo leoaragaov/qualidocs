@@ -26,12 +26,20 @@ export const listProjects = createServerFn({ method: "GET" })
     return (data ?? []) as TmsProjectRow[];
   });
 
+const tagSchema = z.object({
+  name: z.string().min(1).max(40),
+  color: z.string().min(1).max(40),
+});
+
 export const createProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ projeto: z.string().min(1).max(200) }).parse(d))
+  .inputValidator((d) =>
+    z.object({
+      projeto: z.string().min(1).max(200),
+      tags: z.array(tagSchema).max(20).optional(),
+    }).parse(d),
+  )
   .handler(async ({ data, context }) => {
-    // Usa RPC SECURITY DEFINER: preenche owner_id com auth.uid() no servidor,
-    // evitando qualquer divergência com a política de RLS (owner_id = auth.uid()).
     const { data: row, error } = await context.supabase
       .rpc("tms_create_project", { _projeto: data.projeto })
       .single();
@@ -39,8 +47,34 @@ export const createProject = createServerFn({ method: "POST" })
       console.error("[QualiDocs] createProject:", error);
       throw new Error(error.message);
     }
-    return row as TmsProjectRow;
+    const created = row as TmsProjectRow & { id: string };
+    if (data.tags && data.tags.length) {
+      const { error: tErr } = await context.supabase
+        .from("projects")
+        .update({ tags: data.tags })
+        .eq("id", created.id);
+      if (tErr) console.error("[QualiDocs] createProject tags:", tErr);
+    }
+    return created as TmsProjectRow;
   });
+
+export const updateProjectTags = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      tags: z.array(tagSchema).max(20),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("projects")
+      .update({ tags: data.tags })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const deleteProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
