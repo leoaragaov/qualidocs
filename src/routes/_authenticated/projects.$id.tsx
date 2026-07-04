@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  deriveUsStatus, deriveScheduleStatus, usBadgeClass, scheduleBadgeClass, US_STATUSES,
+  deriveUsStatus, deriveScheduleStatus, usBadgeClass, scheduleBadgeClass,
   type DerivedUsStatus,
 } from "@/lib/status-derivation";
 import { toast, Toaster } from "sonner";
