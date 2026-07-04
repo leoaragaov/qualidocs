@@ -9,8 +9,10 @@ import {
 import { toast, Toaster } from "sonner";
 import {
   ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
-  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock, Settings,
+  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock, Settings, ShieldCheck,
 } from "lucide-react";
+import { BackupDialog } from "@/components/BackupDialog";
+import { saveLocalSnapshot, sanitizeDeep, looksLikePlainCredential } from "@/lib/backup";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -114,10 +116,18 @@ function ProjectPage() {
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [tab, setTab] = useState<Tab>("plano");
+  const [backupOpen, setBackupOpen] = useState(false);
 
   const { data, isPending, error } = useQuery(projectDetailQueryOptions(id));
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["project", id] });
+
+  // ---------- Auto-save snapshot to localStorage on every data change ----------
+  useEffect(() => {
+    if (!data?.project) return;
+    saveLocalSnapshot(id, data as any);
+  }, [id, data]);
+
 
   // ---------- Reactive derived statuses (US + Cronograma) ----------
   const rawSchedule = useMemo(
@@ -278,6 +288,9 @@ function ProjectPage() {
             <Button onClick={handleExportPdf} disabled={exportingPdf}>
               <FileText className="mr-2 h-4 w-4" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setBackupOpen(true)} title="Backup e Recuperação (Backup & Recovery)">
+              <ShieldCheck className="mr-2 h-4 w-4" /> Backup (Backup & Recovery)
+            </Button>
             <Button variant="ghost" size="sm" asChild title="Minha conta">
               <Link to="/account"><Settings className="h-4 w-4" /></Link>
             </Button>
@@ -314,9 +327,18 @@ function ProjectPage() {
         </Tabs>
 
       </main>
+      <BackupDialog
+        open={backupOpen}
+        onOpenChange={setBackupOpen}
+        projectId={id}
+        projectName={project?.projeto || undefined}
+        snapshot={(data as any) ?? null}
+        onRestored={() => invalidate()}
+      />
     </div>
   );
 }
+
 
 // ============ Reusable field ============
 function textValue(value: unknown) {
@@ -517,7 +539,7 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
                       if (savingIds[r.id!]) return;
                       setSavingIds((s) => ({ ...s, [r.id!]: true }));
                       try {
-                        await onSave(draft);
+                        await onSave(sanitizeDeep(draft));
                         setDrafts((d) => { const nd = { ...d }; delete nd[r.id!]; return nd; });
                         toast.success("Salvo");
                       } catch (e: any) {
@@ -569,7 +591,7 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
                   if (savingNew) return;
                   setSavingNew(true);
                   try {
-                    await onSave(newDraft);
+                    await onSave(sanitizeDeep(newDraft));
                     setNewDraft(null);
                     toast.success("Adicionado");
                   } catch (e: any) {
@@ -695,7 +717,13 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
                 </Select>
               </Field>
               <Field label="Pré-condições (Pre-conditions)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
-              <Field label="Massa de Dados (Test Data)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
+              <Field label="Massa de Dados (Test Data)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => {
+                const v = e.target.value;
+                upd({ ...r, massa: v });
+                if (looksLikePlainCredential(v) && !looksLikePlainCredential(textValue(r?.massa))) {
+                  toast.warning("Aviso de Segurança: Evite inserir credenciais reais em ambientes de teste (Security Warning: Avoid entering real credentials in test environments)", { duration: 6000 });
+                }
+              }} /></Field>
               <Field label="Passos de Execução (Execution Steps)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
               <Field label="Resultado Esperado (Expected Result)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
               <Field label="Observações (Notes)" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
