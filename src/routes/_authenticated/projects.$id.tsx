@@ -292,14 +292,14 @@ function ProjectPage() {
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
           <div className="mb-6 overflow-x-auto">
             <TabsList className="inline-flex h-11 items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 p-1 shadow-sm backdrop-blur">
-              <TabsTrigger value="plano" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Plano</TabsTrigger>
-              <TabsTrigger value="us" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">US <Badge variant="secondary" className="ml-2">{userStories.length}</Badge></TabsTrigger>
-              <TabsTrigger value="ct" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">CT <Badge variant="secondary" className="ml-2">{testCases.length}</Badge></TabsTrigger>
-              <TabsTrigger value="exec" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Execução</TabsTrigger>
-              <TabsTrigger value="bugs" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bugs <Badge variant="secondary" className="ml-2">{bugs.length}</Badge></TabsTrigger>
-              <TabsTrigger value="audit" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Auditoria</TabsTrigger>
-              <TabsTrigger value="matriz" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matriz</TabsTrigger>
-              <TabsTrigger value="membros" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Users className="mr-1 h-3.5 w-3.5" />Membros</TabsTrigger>
+              <TabsTrigger value="plano" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Plano de Teste (Test Plan)</TabsTrigger>
+              <TabsTrigger value="us" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Histórias de Usuário (User Stories) <Badge variant="secondary" className="ml-2">{userStories.length}</Badge></TabsTrigger>
+              <TabsTrigger value="ct" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Casos de Teste (Test Cases) <Badge variant="secondary" className="ml-2">{testCases.length}</Badge></TabsTrigger>
+              <TabsTrigger value="exec" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Execução (Execution)</TabsTrigger>
+              <TabsTrigger value="bugs" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Relatório de Bugs (Bug Report) <Badge variant="secondary" className="ml-2">{bugs.length}</Badge></TabsTrigger>
+              <TabsTrigger value="audit" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Auditoria (Audit)</TabsTrigger>
+              <TabsTrigger value="matriz" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matriz de Rastreabilidade (Traceability Matrix)</TabsTrigger>
+              <TabsTrigger value="membros" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Users className="mr-1 h-3.5 w-3.5" />Membros (Members)</TabsTrigger>
             </TabsList>
           </div>
 
@@ -379,18 +379,18 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Identificação</CardTitle>
+          <CardTitle>Identificação (Identification)</CardTitle>
           <Button size="sm" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
             <Save className="mr-2 h-4 w-4" /> Salvar plano
           </Button>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Field label="Projeto"><Input value={p?.projeto ?? ""} onChange={(e) => setP({ ...p, projeto: e.target.value })} /></Field>
-          <Field label="Versão do Plano"><Input value={p?.versao ?? ""} onChange={(e) => setP({ ...p, versao: e.target.value })} /></Field>
-          <Field label="Responsável QA"><Input value={p?.responsavel ?? ""} onChange={(e) => setP({ ...p, responsavel: e.target.value })} /></Field>
-          <Field label="Ambiente de Teste"><Input value={p?.ambiente ?? ""} onChange={(e) => setP({ ...p, ambiente: e.target.value })} /></Field>
-          <Field label="Data de Criação"><Input type="date" value={p?.data_criacao ?? ""} onChange={(e) => setP({ ...p, data_criacao: e.target.value })} /></Field>
-          <Field label="Última Revisão"><Input type="date" value={p?.ultima_revisao ?? ""} onChange={(e) => setP({ ...p, ultima_revisao: e.target.value })} /></Field>
+          <Field label="Projeto (Project)"><Input value={p?.projeto ?? ""} onChange={(e) => setP({ ...p, projeto: e.target.value })} /></Field>
+          <Field label="Versão do Plano (Plan Version)"><Input value={p?.versao ?? ""} onChange={(e) => setP({ ...p, versao: e.target.value })} /></Field>
+          <Field label="Responsável QA (QA Lead)"><Input value={p?.responsavel ?? ""} onChange={(e) => setP({ ...p, responsavel: e.target.value })} /></Field>
+          <Field label="Ambiente de Teste (Test Environment)"><Input value={p?.ambiente ?? ""} onChange={(e) => setP({ ...p, ambiente: e.target.value })} /></Field>
+          <Field label="Data de Criação (Creation Date)"><Input type="date" value={p?.data_criacao ?? ""} onChange={(e) => setP({ ...p, data_criacao: e.target.value })} /></Field>
+          <Field label="Última Revisão (Last Review)"><Input type="date" value={p?.ultima_revisao ?? ""} onChange={(e) => setP({ ...p, ultima_revisao: e.target.value })} /></Field>
         </CardContent>
       </Card>
 
@@ -431,7 +431,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       />
 
       <RowEditor
-        title="Riscos"
+        title="Gerenciamento de Riscos (Risk Management)"
         rows={risks}
         newRow={() => ({ id: crypto.randomUUID(), project_id: p?.id ?? "", ordem: (risks?.length ?? 0), risco_id: "", descricao: "", probabilidade: "Média", impacto: "Médio", mitigacao: "", responsavel: "" }) as TmsRisk}
         onSave={async (r) => { await upRisk({ data: r as any }); onChange(); }}
@@ -780,7 +780,7 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
       {/* Filters */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Filtros</CardTitle>
+          <CardTitle className="text-base">Filtros (Filters)</CardTitle>
           {filtersActive && (
             <Button size="sm" variant="ghost" onClick={clearFilters}>Limpar filtros</Button>
           )}
@@ -796,7 +796,7 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Módulo">
+          <Field label="Módulo (Module)">
             <Select value={fModulo} onValueChange={setFModulo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -805,10 +805,10 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Executado de">
+          <Field label="Executado de (Executed From)">
             <Input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} />
           </Field>
-          <Field label="Executado até">
+          <Field label="Executado até (Executed To)">
             <Input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} />
           </Field>
         </CardContent>
@@ -816,10 +816,10 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
 
       {/* Metric cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total de Testes" value={summary.total} />
-        <Stat label="% Sucesso" value={`${summary.pctOk}%`} tone="ok" />
-        <Stat label="% Falha" value={`${summary.pctBad}%`} tone="bad" />
-        <Stat label="Pendentes" value={summary.pend} tone="warn" />
+        <Stat label="Total de Casos de Teste (Total Test Cases)" value={summary.total} />
+        <Stat label="% Sucesso (Success %)" value={`${summary.pctOk}%`} tone="ok" />
+        <Stat label="% Falha (Failure %)" value={`${summary.pctBad}%`} tone="bad" />
+        <Stat label="Pendentes (Pending)" value={summary.pend} tone="warn" />
       </div>
 
       {safeRows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste. Cadastre em "CT" primeiro.</CardContent></Card>}
@@ -1206,7 +1206,7 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Matriz de Rastreabilidade</CardTitle>
+        <CardTitle>Matriz de Rastreabilidade (Traceability Matrix)</CardTitle>
         <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID da História de Usuário (User Story ID) dos casos de teste.</p>
       </CardHeader>
       <CardContent className="overflow-x-auto">
