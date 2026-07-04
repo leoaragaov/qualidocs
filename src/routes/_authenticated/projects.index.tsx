@@ -287,7 +287,7 @@ function DashboardPage() {
               <FileSpreadsheet className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">QualiDocs · Meus Projetos</h1>
+              <h1 className="text-lg font-semibold tracking-tight">QualiDocs · Meus Projetos (My Projects)</h1>
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
