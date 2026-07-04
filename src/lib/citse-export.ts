@@ -187,11 +187,11 @@ function buildTable(
 function buildMatriz(wb: ExcelJS.Workbook, data: CitseData) {
   const cts = data.casosTeste;
   const headers = [
-    { label: "ID_US", width: 16 },
-    { label: "Módulo", width: 24 },
-    { label: "Descrição da User Story", width: 40 },
+    { label: "ID da História de Usuário (User Story ID)", width: 28 },
+    { label: "Módulo (Module)", width: 24 },
+    { label: "Descrição da História de Usuário (User Story)", width: 40 },
     ...cts.map((c) => ({ label: c.id, width: 16 })),
-    { label: "Cobertura (%)", width: 14 },
+    { label: "Cobertura (Coverage %)", width: 18 },
   ];
   const ws = wb.addWorksheet("Matriz de Rastreabilidade", { views: [{ showGridLines: false }] });
   ws.columns = headers.map((h) => ({ width: h.width }));
@@ -254,13 +254,13 @@ export async function exportCitseToXlsx(data: CitseData) {
     "Histórias de Usuário",
     "📖  HISTÓRIAS DE USUÁRIO (USER STORIES)",
     [
-      { label: "ID_US", width: 14 },
-      { label: "Módulo", width: 22 },
-      { label: "Ator / Perfil", width: 22 },
-      { label: "User Story (Eu como… Quero… Para que…)", width: 42 },
-      { label: "Critério de Aceitação 1", width: 42 },
-      { label: "Critério de Aceitação 2", width: 42 },
-      { label: "Prioridade", width: 12 },
+      { label: "ID da História de Usuário (User Story ID)", width: 28 },
+      { label: "Módulo (Module)", width: 22 },
+      { label: "Ator / Perfil (Actor / Role)", width: 24 },
+      { label: "História de Usuário (User Story) — Eu como… Quero… Para que…", width: 42 },
+      { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 },
+      { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Prioridade (Priority)", width: 14 },
       { label: "Sprint / Release", width: 14 },
       { label: "Status", width: 14 },
     ],
@@ -272,18 +272,18 @@ export async function exportCitseToXlsx(data: CitseData) {
     "Casos de Teste Detalhados",
     "🧪  CASOS DE TESTE DETALHADOS",
     [
-      { label: "ID_CT", width: 14 },
-      { label: "ID_US (Rastr.)", width: 16 },
-      { label: "Módulo", width: 22 },
-      { label: "Tipo de Teste", width: 14 },
-      { label: "Pré-condições", width: 34 },
-      { label: "Massa de Dados (Entrada)", width: 30 },
-      { label: "Passo a Passo (Ação do Usuário)", width: 36 },
-      { label: "Resultado Esperado", width: 36 },
-      { label: "Resultado Obtido", width: 30 },
+      { label: "ID do Caso de Teste (Test Case ID)", width: 22 },
+      { label: "ID da História de Usuário (User Story ID)", width: 28 },
+      { label: "Módulo (Module)", width: 22 },
+      { label: "Tipo de Teste (Test Type)", width: 18 },
+      { label: "Pré-condições (Pre-conditions)", width: 34 },
+      { label: "Massa de Dados (Test Data)", width: 30 },
+      { label: "Passos de Execução (Execution Steps)", width: 36 },
+      { label: "Resultado Esperado (Expected Result)", width: 36 },
+      { label: "Resultado Obtido (Actual Result)", width: 30 },
       { label: "Status", width: 16 },
-      { label: "Evidência (Link/Print)", width: 22 },
-      { label: "Observações", width: 28 },
+      { label: "Evidência (Evidence) — link/print", width: 26 },
+      { label: "Observações (Notes)", width: 28 },
     ],
     data.casosTeste.map((c) => [
       c.id, c.idUs, c.modulo, c.tipo, c.precondicoes, c.massa, c.passos, c.esperado, c.obtido, c.status, c.evidencia, c.observacoes,
@@ -338,14 +338,14 @@ function buildBugsSheet(wb: ExcelJS.Workbook, d: TmsProjectDetail) {
   buildTable(
     wb, "Relatório de Bugs", "🐞  RELATÓRIO DE BUGS",
     [
-      { label: "ID_Bug", width: 14 },
-      { label: "CT Relacionado", width: 16 },
-      { label: "Título", width: 34 },
-      { label: "Severidade", width: 12 },
-      { label: "Comportamento Atual", width: 36 },
-      { label: "Comportamento Esperado", width: 36 },
+      { label: "ID do Bug (Bug ID)", width: 18 },
+      { label: "Caso de Teste Relacionado (Related Test Case)", width: 28 },
+      { label: "Título do Bug (Bug Title)", width: 34 },
+      { label: "Severidade (Severity)", width: 16 },
+      { label: "Comportamento Atual (Actual Behavior)", width: 36 },
+      { label: "Comportamento Esperado (Expected Behavior)", width: 36 },
       { label: "Status", width: 16 },
-      { label: "Registrado em", width: 18 },
+      { label: "Data de Registro (Logged Date)", width: 22 },
     ],
     d.bugs.map((b) => [
       b.bug_id, b.test_case_id ? (ctMap[b.test_case_id] ?? "") : "",
@@ -391,20 +391,20 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
   buildTable(
     wb, "Histórias de Usuário", "📖  HISTÓRIAS DE USUÁRIO",
     [
-      { label: "ID_US", width: 14 }, { label: "Módulo", width: 22 },
-      { label: "Ator", width: 22 }, { label: "User Story", width: 42 },
-      { label: "Critério 1", width: 42 }, { label: "Critério 2", width: 42 },
-      { label: "Prioridade", width: 12 }, { label: "Sprint", width: 14 }, { label: "Status", width: 14 },
+      { label: "ID da História de Usuário (User Story ID)", width: 28 }, { label: "Módulo (Module)", width: 22 },
+      { label: "Ator / Perfil (Actor / Role)", width: 22 }, { label: "História de Usuário (User Story)", width: 42 },
+      { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 }, { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Prioridade (Priority)", width: 14 }, { label: "Sprint", width: 14 }, { label: "Status", width: 14 },
     ],
     adapter.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, u.prioridade, u.sprint, u.status]),
   );
   buildTable(
     wb, "Casos de Teste", "🧪  CASOS DE TESTE",
     [
-      { label: "ID_CT", width: 14 }, { label: "ID_US", width: 16 }, { label: "Módulo", width: 22 },
-      { label: "Tipo", width: 14 }, { label: "Pré-condições", width: 34 }, { label: "Massa", width: 30 },
-      { label: "Passos", width: 36 }, { label: "Esperado", width: 36 }, { label: "Obtido", width: 30 },
-      { label: "Status", width: 14 }, { label: "Evidência", width: 22 }, { label: "Observações", width: 28 },
+      { label: "ID do Caso de Teste (Test Case ID)", width: 22 }, { label: "ID da História de Usuário (User Story ID)", width: 28 }, { label: "Módulo (Module)", width: 22 },
+      { label: "Tipo de Teste (Test Type)", width: 18 }, { label: "Pré-condições (Pre-conditions)", width: 34 }, { label: "Massa de Dados (Test Data)", width: 30 },
+      { label: "Passos de Execução (Execution Steps)", width: 36 }, { label: "Resultado Esperado (Expected Result)", width: 36 }, { label: "Resultado Obtido (Actual Result)", width: 30 },
+      { label: "Status", width: 14 }, { label: "Evidência (Evidence)", width: 24 }, { label: "Observações (Notes)", width: 28 },
     ],
     adapter.casosTeste.map((c) => [c.id, c.idUs, c.modulo, c.tipo, c.precondicoes, c.massa, c.passos, c.esperado, c.obtido, c.status, c.evidencia, c.observacoes]),
   );

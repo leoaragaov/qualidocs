@@ -399,8 +399,8 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         <CardContent className="grid gap-4">
           <Field label="Objetivo Geral"><Textarea rows={3} value={p?.objetivo ?? ""} onChange={(e) => setP({ ...p, objetivo: e.target.value })} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="IN SCOPE (uma linha por item)"><Textarea rows={5} value={p?.in_scope ?? ""} onChange={(e) => setP({ ...p, in_scope: e.target.value })} /></Field>
-            <Field label="OUT OF SCOPE (uma linha por item)"><Textarea rows={5} value={p?.out_of_scope ?? ""} onChange={(e) => setP({ ...p, out_of_scope: e.target.value })} /></Field>
+            <Field label="No Escopo (In Scope) — uma linha por item"><Textarea rows={5} value={p?.in_scope ?? ""} onChange={(e) => setP({ ...p, in_scope: e.target.value })} /></Field>
+            <Field label="Fora de Escopo (Out of Scope) — uma linha por item"><Textarea rows={5} value={p?.out_of_scope ?? ""} onChange={(e) => setP({ ...p, out_of_scope: e.target.value })} /></Field>
           </div>
         </CardContent>
       </Card>
@@ -600,10 +600,10 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
         render={(r, upd) => (
           (filter === "all" || filter === r.id || !r.id) && (
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="ID_US"><Input placeholder="US-MOD-001" value={textValue(r?.us_id)} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
-              <Field label="Módulo"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
-              <Field label="Ator / Perfil"><Input value={textValue(r?.ator)} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
-              <Field label="User Story (Eu como… Quero… Para que…)" className="md:col-span-3">
+              <Field label="ID da História de Usuário (User Story ID)"><Input placeholder="US-MOD-001" value={textValue(r?.us_id)} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
+              <Field label="Módulo (Module)"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Ator / Perfil (Actor / Role)"><Input value={textValue(r?.ator)} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
+              <Field label="História de Usuário (User Story) — Eu como… Quero… Para que…" className="md:col-span-3">
                 <Textarea rows={3} value={textValue(r?.story)} onChange={(e) => upd({ ...r, story: e.target.value })} />
               </Field>
               <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio1)} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
@@ -663,10 +663,10 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
         render={(r, upd) => (
           (filter === "all" || filter === r.id || !r.id) && (
             <div className="grid gap-3 md:grid-cols-4">
-              <Field label="ID_CT"><Input placeholder="CT-MOD-001" value={textValue(r?.ct_id)} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
-              <Field label="ID_US"><Input placeholder="US-MOD-001" value={textValue(r?.id_us)} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
-              <Field label="Módulo"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
-              <Field label="Tipo">
+              <Field label="ID do Caso de Teste (Test Case ID)"><Input placeholder="CT-MOD-001" value={textValue(r?.ct_id)} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
+              <Field label="ID da História de Usuário (User Story ID)"><Input placeholder="US-MOD-001" value={textValue(r?.id_us)} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
+              <Field label="Módulo (Module)"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Tipo de Teste (Test Type)">
                 <Select value={textValue(r?.tipo || "Funcional")} onValueChange={(v) => upd({ ...r, tipo: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -674,11 +674,11 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Pré-condições" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
-              <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
-              <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
-              <Field label="Resultado Esperado" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
-              <Field label="Observações" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
+              <Field label="Pré-condições (Pre-conditions)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
+              <Field label="Massa de Dados (Test Data)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
+              <Field label="Passos de Execução (Execution Steps)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
+              <Field label="Resultado Esperado (Expected Result)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
+              <Field label="Observações (Notes)" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
             </div>
           )
         )}
@@ -864,20 +864,20 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
           {selected && (
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3 rounded-md border bg-muted/30 p-3 text-sm">
-                <div><span className="text-xs text-muted-foreground">User Story</span><p className="font-mono">{selected.id_us || "—"}</p></div>
-                <div><span className="text-xs text-muted-foreground">Módulo</span><p>{selected.modulo || "—"}</p></div>
-                <div><span className="text-xs text-muted-foreground">Tipo</span><p>{selected.tipo || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">História de Usuário (User Story)</span><p className="font-mono">{selected.id_us || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">Módulo (Module)</span><p>{selected.modulo || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">Tipo de Teste (Test Type)</span><p>{selected.tipo || "—"}</p></div>
               </div>
-              <ReadOnlyBlock label="Pré-condições" value={selected.precondicoes} />
-              <ReadOnlyBlock label="Massa de Dados" value={selected.massa} />
-              <ReadOnlyBlock label="Passo a Passo" value={selected.passos} />
-              <ReadOnlyBlock label="Resultado Esperado" value={selected.esperado} />
+              <ReadOnlyBlock label="Pré-condições (Pre-conditions)" value={selected.precondicoes} />
+              <ReadOnlyBlock label="Massa de Dados (Test Data)" value={selected.massa} />
+              <ReadOnlyBlock label="Passos de Execução (Execution Steps)" value={selected.passos} />
+              <ReadOnlyBlock label="Resultado Esperado (Expected Result)" value={selected.esperado} />
 
               <div className="border-t pt-4 space-y-3">
-                <Field label="Resultado Obtido">
+                <Field label="Resultado Obtido (Actual Result)">
                   <Textarea rows={3} value={obtido} onChange={(e) => setObtido(e.target.value)} placeholder="Descreva o que aconteceu na execução..." />
                 </Field>
-                <Field label="Evidência (link/arquivo)">
+                <Field label="Evidência (Evidence) — link/arquivo">
                   <Input value={evidencia} onChange={(e) => setEvidencia(e.target.value)} placeholder="URL do print, vídeo, log..." />
                 </Field>
               </div>
@@ -949,18 +949,18 @@ function BugDialog({ open, ct, projectId, onClose, onSave }: {
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle className="flex items-center gap-2"><BugIcon className="h-5 w-5 text-red-600" /> Registrar Bug</DialogTitle></DialogHeader>
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="ID do Bug"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
-          <Field label="Severidade">
+          <Field label="ID do Bug (Bug ID)"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+          <Field label="Severidade (Severity)">
             <Select value={(b.severidade as string) ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
-              <SelectTrigger><SelectValue placeholder="Severidade" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Severidade (Severity)" /></SelectTrigger>
               <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <Field label="Título" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
-          <Field label="Passos (do CT)" className="md:col-span-2"><Textarea rows={3} value={b.passos ?? ""} onChange={(e) => setB({ ...b, passos: e.target.value })} /></Field>
-          <Field label="Massa de Dados (do CT)" className="md:col-span-2"><Textarea rows={2} value={b.massa ?? ""} onChange={(e) => setB({ ...b, massa: e.target.value })} /></Field>
-          <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
-          <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+          <Field label="Título do Bug (Bug Title)" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+          <Field label="Passos de Execução (Execution Steps) — do CT" className="md:col-span-2"><Textarea rows={3} value={b.passos ?? ""} onChange={(e) => setB({ ...b, passos: e.target.value })} /></Field>
+          <Field label="Massa de Dados (Test Data) — do CT" className="md:col-span-2"><Textarea rows={2} value={b.massa ?? ""} onChange={(e) => setB({ ...b, massa: e.target.value })} /></Field>
+          <Field label="Comportamento Atual (Actual Behavior)"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+          <Field label="Comportamento Esperado (Expected Behavior)"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
           <Field label="Status">
             <Select value={(b.status as string) ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
               <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
@@ -1008,7 +1008,7 @@ function BugsTab({ projectId, rows, testCases, onChange }: {
                 <span className="font-mono text-xs text-muted-foreground">{b?.bug_id || "(sem ID)"}</span>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sevColor[b?.severidade as BugSeverity] ?? "bg-slate-100 text-slate-700"}`}>{b?.severidade || "—"}</span>
                 <Badge variant={b.status === "Corrigido" || b.status === "Retestado" ? "secondary" : "default"}>{b?.status || "—"}</Badge>
-                {b.test_case_id && <span className="text-xs text-muted-foreground">CT: {ctMap[b.test_case_id] ?? "—"}</span>}
+                {b.test_case_id && <span className="text-xs text-muted-foreground">Caso de Teste Relacionado (Related Test Case): {ctMap[b.test_case_id] ?? "—"}</span>}
               </div>
               <p className="mt-1 text-sm font-medium">{b?.titulo || "(sem título)"}</p>
               <p className="text-xs text-muted-foreground line-clamp-1">{b?.comportamento_atual || ""}</p>
@@ -1047,16 +1047,16 @@ function EditBugForm({ bug, onSave, onCancel }: { bug: TmsBug; onSave: (b: TmsBu
   return (
     <>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="ID"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
-        <Field label="Severidade">
+        <Field label="ID do Bug (Bug ID)"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+        <Field label="Severidade (Severity)">
           <Select value={b.severidade ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Título" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
-        <Field label="Comportamento Atual"><Textarea rows={3} value={b?.comportamento_atual || ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
-        <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+        <Field label="Título do Bug (Bug Title)" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+        <Field label="Comportamento Atual (Actual Behavior)"><Textarea rows={3} value={b?.comportamento_atual || ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+        <Field label="Comportamento Esperado (Expected Behavior)"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
         <Field label="Status">
           <Select value={b.status ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1207,16 +1207,16 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
     <Card>
       <CardHeader>
         <CardTitle>Matriz de Rastreabilidade</CardTitle>
-        <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID_US dos casos de teste.</p>
+        <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID da História de Usuário (User Story ID) dos casos de teste.</p>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-muted">
-              <th className="border p-2 text-left">ID_US</th>
-              <th className="border p-2 text-left">Módulo</th>
+              <th className="border p-2 text-left">ID da História de Usuário (User Story ID)</th>
+              <th className="border p-2 text-left">Módulo (Module)</th>
               {safeCases.map((c, i) => <th key={c?.id ?? `ct-${i}`} className="border p-2 text-center">{c?.ct_id || "?"}</th>)}
-              <th className="border p-2 text-center">Cobertura</th>
+              <th className="border p-2 text-center">Cobertura (Coverage %)</th>
             </tr>
           </thead>
           <tbody>
