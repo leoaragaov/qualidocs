@@ -395,7 +395,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Objetivo & Escopo</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Objetivo & Escopo (Objective & Scope)</CardTitle></CardHeader>
         <CardContent className="grid gap-4">
           <Field label="Objetivo Geral"><Textarea rows={3} value={p?.objetivo ?? ""} onChange={(e) => setP({ ...p, objetivo: e.target.value })} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
