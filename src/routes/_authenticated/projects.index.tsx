@@ -22,11 +22,27 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { createProject, deleteProject, importDraft } from "@/lib/tms.functions";
+import { createProject, deleteProject, importDraft, updateProjectTags } from "@/lib/tms.functions";
 import {
   joinProjectByCode, listMyProjects, listNotifications, markNotificationsRead,
-  type MyProjectSummary, type NotificationRow,
+  type MyProjectSummary, type NotificationRow, type ProjectTag,
 } from "@/lib/members.functions";
+
+// Palette of pre-defined tag colors (Tailwind-based)
+const TAG_COLORS: { name: string; label: string; bg: string; text: string; ring: string; dot: string }[] = [
+  { name: "blue",   label: "Azul (Blue)",       bg: "bg-blue-100",   text: "text-blue-800",   ring: "ring-blue-300",   dot: "bg-blue-500" },
+  { name: "green",  label: "Verde (Green)",     bg: "bg-green-100",  text: "text-green-800",  ring: "ring-green-300",  dot: "bg-green-500" },
+  { name: "red",    label: "Vermelho (Red)",    bg: "bg-red-100",    text: "text-red-800",    ring: "ring-red-300",    dot: "bg-red-500" },
+  { name: "yellow", label: "Amarelo (Yellow)",  bg: "bg-yellow-100", text: "text-yellow-800", ring: "ring-yellow-300", dot: "bg-yellow-500" },
+  { name: "purple", label: "Roxo (Purple)",     bg: "bg-purple-100", text: "text-purple-800", ring: "ring-purple-300", dot: "bg-purple-500" },
+  { name: "orange", label: "Laranja (Orange)",  bg: "bg-orange-100", text: "text-orange-800", ring: "ring-orange-300", dot: "bg-orange-500" },
+  { name: "gray",   label: "Cinza (Gray)",      bg: "bg-slate-100",  text: "text-slate-700",  ring: "ring-slate-300",  dot: "bg-slate-500" },
+];
+
+function tagStyle(color: string) {
+  return TAG_COLORS.find((c) => c.name === color) ?? TAG_COLORS[TAG_COLORS.length - 1];
+}
+
 
 const projectsQueryOptions = () => ({
   queryKey: ["my-projects"] as const,
