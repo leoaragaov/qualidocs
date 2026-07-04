@@ -637,6 +637,31 @@ export type Database = {
       tms_can_manage: { Args: { _pid: string }; Returns: boolean }
       tms_can_view: { Args: { _pid: string }; Returns: boolean }
       tms_can_write: { Args: { _pid: string }; Returns: boolean }
+      tms_create_project: {
+        Args: { _projeto: string }
+        Returns: {
+          ambiente: string
+          codigo_acesso: string | null
+          created_at: string
+          data_criacao: string | null
+          id: string
+          in_scope: string
+          objetivo: string
+          out_of_scope: string
+          owner_id: string
+          projeto: string
+          responsavel: string
+          ultima_revisao: string | null
+          updated_at: string
+          versao: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       tms_decide_access_request: {
         Args: { _approve: boolean; _request_id: string }
         Returns: undefined
