@@ -351,7 +351,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       <RowEditor
         title="Riscos"
         rows={risks}
-        newRow={() => ({ project_id: p?.id ?? "", ordem: (risks?.length ?? 0), risco_id: "", descricao: "", probabilidade: "Média", impacto: "Médio", mitigacao: "", responsavel: "" }) as TmsRisk}
+        newRow={() => ({ id: crypto.randomUUID(), project_id: p?.id ?? "", ordem: (risks?.length ?? 0), risco_id: "", descricao: "", probabilidade: "Média", impacto: "Médio", mitigacao: "", responsavel: "" }) as TmsRisk}
         onSave={async (r) => { await upRisk({ data: r as any }); onChange(); }}
         onDelete={async (rid) => { await del({ data: { table: "risks", id: rid } }); onChange(); }}
         render={(r, upd) => (
