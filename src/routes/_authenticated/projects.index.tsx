@@ -311,7 +311,7 @@ function DashboardPage() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Pesquisar projeto ou proprietário…"
+              placeholder="Pesquisar projeto ou proprietário... (Search project or owner...)"
               className="pl-9 h-10 rounded-lg bg-white"
             />
           </div>
@@ -320,15 +320,15 @@ function DashboardPage() {
             onClick={() => setJoinOpen(true)}
             className="h-10 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
           >
-            <KeyRound className="mr-2 h-4 w-4" /> Entrar em um projeto
+            <KeyRound className="mr-2 h-4 w-4" /> Entrar em um projeto (Enter a project)
           </Button>
           {hasDraft && (
             <Button variant="outline" onClick={() => importM.mutate()} disabled={importM.isPending} className="h-10">
-              <Upload className="mr-2 h-4 w-4" /> Importar rascunho
+              <Upload className="mr-2 h-4 w-4" /> Importar rascunho (Import draft)
             </Button>
           )}
           <Button onClick={() => setNewProjOpen(true)} className="h-10">
-            <Plus className="mr-2 h-4 w-4" /> Novo projeto
+            <Plus className="mr-2 h-4 w-4" /> Novo projeto (New project)
           </Button>
         </div>
 
@@ -336,20 +336,27 @@ function DashboardPage() {
         <section className="space-y-4">
           <div className="flex items-baseline gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Crown className="h-4 w-4 text-amber-500" /> Meus projetos
+              <Crown className="h-4 w-4 text-amber-500" /> Meus Projetos (My Projects)
             </h2>
             <span className="text-xs text-muted-foreground">{ownedF.length}</span>
           </div>
-          {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
+          {isPending && <p className="text-sm text-muted-foreground">Carregando… (Loading…)</p>}
           {!isPending && ownedF.length === 0 && (
             <Card className="rounded-xl border-dashed border-slate-300 bg-white">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Você ainda não criou nenhum projeto. Clique em <b>Novo projeto</b> para começar.
+                Você ainda não criou nenhum projeto. Clique em <b>Novo projeto (New project)</b> para começar.
               </CardContent>
             </Card>
           )}
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {ownedF.map((p) => <OwnerCard key={p.id} p={p} onDelete={setDelId} />)}
+            {ownedF.map((p) => (
+              <OwnerCard
+                key={p.id}
+                p={p}
+                onDelete={setDelId}
+                onEditTags={() => setTagsEdit({ id: p.id, name: p.projeto, tags: p.tags ?? [] })}
+              />
+            ))}
           </div>
         </section>
 
@@ -357,7 +364,8 @@ function DashboardPage() {
         <section className="space-y-4">
           <div className="flex items-baseline gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Projetos em que colaboro
+              <Users className="h-4 w-4 text-primary" /> Projetos em que Colaboro (Projects I Collaborate On)
+
             </h2>
             <span className="text-xs text-muted-foreground">{collabF.length}</span>
           </div>
