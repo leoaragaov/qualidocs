@@ -379,18 +379,18 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Identificação</CardTitle>
+          <CardTitle>Identificação (Identification)</CardTitle>
           <Button size="sm" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
             <Save className="mr-2 h-4 w-4" /> Salvar plano
           </Button>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Field label="Projeto"><Input value={p?.projeto ?? ""} onChange={(e) => setP({ ...p, projeto: e.target.value })} /></Field>
-          <Field label="Versão do Plano"><Input value={p?.versao ?? ""} onChange={(e) => setP({ ...p, versao: e.target.value })} /></Field>
-          <Field label="Responsável QA"><Input value={p?.responsavel ?? ""} onChange={(e) => setP({ ...p, responsavel: e.target.value })} /></Field>
-          <Field label="Ambiente de Teste"><Input value={p?.ambiente ?? ""} onChange={(e) => setP({ ...p, ambiente: e.target.value })} /></Field>
-          <Field label="Data de Criação"><Input type="date" value={p?.data_criacao ?? ""} onChange={(e) => setP({ ...p, data_criacao: e.target.value })} /></Field>
-          <Field label="Última Revisão"><Input type="date" value={p?.ultima_revisao ?? ""} onChange={(e) => setP({ ...p, ultima_revisao: e.target.value })} /></Field>
+          <Field label="Projeto (Project)"><Input value={p?.projeto ?? ""} onChange={(e) => setP({ ...p, projeto: e.target.value })} /></Field>
+          <Field label="Versão do Plano (Plan Version)"><Input value={p?.versao ?? ""} onChange={(e) => setP({ ...p, versao: e.target.value })} /></Field>
+          <Field label="Responsável QA (QA Lead)"><Input value={p?.responsavel ?? ""} onChange={(e) => setP({ ...p, responsavel: e.target.value })} /></Field>
+          <Field label="Ambiente de Teste (Test Environment)"><Input value={p?.ambiente ?? ""} onChange={(e) => setP({ ...p, ambiente: e.target.value })} /></Field>
+          <Field label="Data de Criação (Creation Date)"><Input type="date" value={p?.data_criacao ?? ""} onChange={(e) => setP({ ...p, data_criacao: e.target.value })} /></Field>
+          <Field label="Última Revisão (Last Review)"><Input type="date" value={p?.ultima_revisao ?? ""} onChange={(e) => setP({ ...p, ultima_revisao: e.target.value })} /></Field>
         </CardContent>
       </Card>
 
