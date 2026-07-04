@@ -439,10 +439,10 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         render={(r, upd) => (
           <div className="grid gap-2 md:grid-cols-6">
             <Input placeholder="ID" value={textValue(r?.risco_id)} onChange={(e) => upd({ ...r, risco_id: e.target.value })} />
-            <Textarea placeholder="Descrição" rows={2} value={textValue(r?.descricao)} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
+            <Textarea placeholder="Descrição (Description)" rows={2} value={textValue(r?.descricao)} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
             <Select value={textValue(r?.probabilidade) || "Média"} onValueChange={(v) => upd({ ...r, probabilidade: v })}>
               <SelectTrigger><SelectValue placeholder="Probabilidade" /></SelectTrigger>
-              <SelectContent>{["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>{["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s === "Alta" ? "Alta (High)" : s === "Média" ? "Média (Medium)" : "Baixa (Low)"}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={textValue(r?.impacto) || "Médio"} onValueChange={(v) => upd({ ...r, impacto: v })}>
               <SelectTrigger><SelectValue placeholder="Impacto" /></SelectTrigger>
