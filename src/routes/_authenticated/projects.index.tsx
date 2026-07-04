@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound,
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -23,7 +24,10 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { createProject, deleteProject, importDraft, updateProjectTags } from "@/lib/tms.functions";
+import {
+  createGlobalProjectTag, createProject, deleteGlobalProjectTag, deleteProject, importDraft,
+  listGlobalProjectTags, updateGlobalProjectTag, updateProjectTags, type GlobalProjectTag,
+} from "@/lib/tms.functions";
 import {
   joinProjectByCode, listMyProjects, listNotifications, markNotificationsRead,
   type MyProjectSummary, type NotificationRow, type ProjectTag,
@@ -57,6 +61,13 @@ const notificationsQueryOptions = () => ({
   queryFn: () => listNotifications(),
   staleTime: 60_000,
   refetchInterval: 60_000,
+});
+
+const globalTagsQueryOptions = () => ({
+  queryKey: ["global-project-tags"] as const,
+  queryFn: () => listGlobalProjectTags(),
+  staleTime: 5 * 60_000,
+  gcTime: 15 * 60_000,
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
@@ -153,21 +164,27 @@ function DashboardPage() {
   const doImport = useServerFn(importDraft);
   const join = useServerFn(joinProjectByCode);
   const saveTags = useServerFn(updateProjectTags);
+  const createGlobalTag = useServerFn(createGlobalProjectTag);
+  const updateGlobalTag = useServerFn(updateGlobalProjectTag);
+  const deleteGlobalTag = useServerFn(deleteGlobalProjectTag);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
   const { data, isPending } = useQuery(projectsQueryOptions());
+  const { data: globalTagsData = [] } = useQuery(globalTagsQueryOptions());
+  const globalTags = Array.isArray(globalTagsData) ? globalTagsData : [];
 
   const [newProjOpen, setNewProjOpen] = useState(false);
   const [nome, setNome] = useState("");
-  const [newTags, setNewTags] = useState<ProjectTag[]>([]);
+  const [newTagIds, setNewTagIds] = useState<string[]>([]);
   const [delId, setDelId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [q, setQ] = useState("");
-  const [tagsEdit, setTagsEdit] = useState<{ id: string; name: string; tags: ProjectTag[] } | null>(null);
+  const [tagsEdit, setTagsEdit] = useState<{ id: string; name: string; tagIds: string[] } | null>(null);
+  const [globalTagsOpen, setGlobalTagsOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null));
@@ -175,23 +192,84 @@ function DashboardPage() {
   }, []);
 
   const createM = useMutation({
-    mutationFn: (payload: { name: string; tags: ProjectTag[] }) =>
-      create({ data: { projeto: payload.name, tags: payload.tags } }),
+    mutationFn: (payload: { name: string; tagIds: string[] }) =>
+      create({ data: { projeto: payload.name, tagIds: payload.tagIds } }),
     onSuccess: (row) => {
       toast.success("Projeto criado (Project created)");
       qc.invalidateQueries({ queryKey: ["my-projects"] });
-      setNewProjOpen(false); setNome(""); setNewTags([]);
+      setNewProjOpen(false); setNome(""); setNewTagIds([]);
       navigate({ to: "/projects/$id", params: { id: row.id } });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const tagsM = useMutation({
-    mutationFn: (payload: { id: string; tags: ProjectTag[] }) => saveTags({ data: payload }),
-    onSuccess: () => {
+    mutationFn: (payload: { id: string; tagIds: string[] }) => saveTags({ data: payload }),
+    onSuccess: (res, vars) => {
       toast.success("Tags atualizadas (Tags updated)");
+      qc.setQueryData(projectsQueryOptions().queryKey, (old: { owned: MyProjectSummary[]; collaborating: MyProjectSummary[] } | undefined) => {
+        if (!old) return old;
+        const apply = (projects: MyProjectSummary[]) => projects.map((project) => (
+          project.id === vars.id ? { ...project, tags: (res.tags ?? []) as ProjectTag[] } : project
+        ));
+        return { owned: apply(old.owned), collaborating: apply(old.collaborating) };
+      });
       qc.invalidateQueries({ queryKey: ["my-projects"] });
       setTagsEdit(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const createGlobalTagM = useMutation({
+    mutationFn: (payload: { name: string; color: string }) => createGlobalTag({ data: payload }),
+    onSuccess: (tag) => {
+      toast.success("Tag criada (Tag created)");
+      qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => [...(old ?? []), tag]);
+      qc.invalidateQueries({ queryKey: ["global-project-tags"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateGlobalTagM = useMutation({
+    mutationFn: (payload: { id: string; name: string; color: string }) => updateGlobalTag({ data: payload }),
+    onSuccess: (tag) => {
+      toast.success("Tag atualizada (Tag updated)");
+      qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => (
+        (old ?? []).map((item) => (item.id === tag.id ? tag : item))
+      ));
+      qc.setQueryData(projectsQueryOptions().queryKey, (old: { owned: MyProjectSummary[]; collaborating: MyProjectSummary[] } | undefined) => {
+        if (!old) return old;
+        const apply = (projects: MyProjectSummary[]) => projects.map((project) => ({
+          ...project,
+          tags: project.tags.map((item) => (item.id === tag.id ? { id: tag.id, name: tag.name, color: tag.color } : item)),
+        }));
+        return { owned: apply(old.owned), collaborating: apply(old.collaborating) };
+      });
+      qc.invalidateQueries({ queryKey: ["global-project-tags"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteGlobalTagM = useMutation({
+    mutationFn: (id: string) => deleteGlobalTag({ data: { id } }),
+    onSuccess: (_res, id) => {
+      toast.success("Tag excluída (Tag deleted)");
+      setNewTagIds((current) => current.filter((tagId) => tagId !== id));
+      setTagsEdit((current) => current ? { ...current, tagIds: current.tagIds.filter((tagId) => tagId !== id) } : current);
+      qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => (
+        (old ?? []).filter((tag) => tag.id !== id)
+      ));
+      qc.setQueryData(projectsQueryOptions().queryKey, (old: { owned: MyProjectSummary[]; collaborating: MyProjectSummary[] } | undefined) => {
+        if (!old) return old;
+        const apply = (projects: MyProjectSummary[]) => projects.map((project) => ({
+          ...project,
+          tags: project.tags.filter((tag) => tag.id !== id),
+        }));
+        return { owned: apply(old.owned), collaborating: apply(old.collaborating) };
+      });
+      qc.invalidateQueries({ queryKey: ["global-project-tags"] });
+      qc.invalidateQueries({ queryKey: ["my-projects"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -328,6 +406,9 @@ function DashboardPage() {
               <Upload className="mr-2 h-4 w-4" /> Importar rascunho (Import draft)
             </Button>
           )}
+          <Button variant="outline" onClick={() => setGlobalTagsOpen(true)} className="h-10">
+            <Tag className="mr-2 h-4 w-4" /> Gerenciar Tags Globais (Manage Global Tags)
+          </Button>
           <Button onClick={() => setNewProjOpen(true)} className="h-10">
             <Plus className="mr-2 h-4 w-4" /> Novo projeto (New project)
           </Button>
@@ -355,7 +436,7 @@ function DashboardPage() {
                 key={p.id}
                 p={p}
                 onDelete={setDelId}
-                onEditTags={() => setTagsEdit({ id: p.id, name: p.projeto, tags: p.tags ?? [] })}
+                onEditTags={() => setTagsEdit({ id: p.id, name: p.projeto, tagIds: (p.tags ?? []).map((tag) => tag.id) })}
               />
             ))}
           </div>
@@ -384,7 +465,7 @@ function DashboardPage() {
       </main>
 
       {/* Novo projeto */}
-      <Dialog open={newProjOpen} onOpenChange={(o) => { setNewProjOpen(o); if (!o) { setNome(""); setNewTags([]); } }}>
+      <Dialog open={newProjOpen} onOpenChange={(o) => { setNewProjOpen(o); if (!o) { setNome(""); setNewTagIds([]); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Novo projeto (New Project)</DialogTitle>
@@ -401,14 +482,27 @@ function DashboardPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Tags do Projeto (Project Tags)</Label>
-              <TagEditor value={newTags} onChange={setNewTags} />
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Tags do Projeto (Project Tags)</Label>
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setGlobalTagsOpen(true)}>
+                  Gerenciar Tags Globais (Manage Global Tags)
+                </Button>
+              </div>
+              <ProjectTagSelector
+                tags={globalTags}
+                selectedIds={newTagIds}
+                onChange={setNewTagIds}
+                onManageGlobal={() => setGlobalTagsOpen(true)}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar (Cancel)</Button>
             <Button
-              onClick={() => nome.trim() && createM.mutate({ name: nome.trim(), tags: newTags })}
+              onClick={() => nome.trim() && createM.mutate({
+                name: nome.trim(),
+                tagIds: newTagIds.filter((id) => globalTags.some((tag) => tag.id === id)),
+              })}
               disabled={createM.isPending || !nome.trim()}
             >
               <Plus className="mr-2 h-4 w-4" /> Criar (Create)
@@ -421,21 +515,26 @@ function DashboardPage() {
       <Dialog open={!!tagsEdit} onOpenChange={(o) => !o && setTagsEdit(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Tags do Projeto (Project Tags)</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Gerenciar Tags do Projeto (Manage Project Tags)</DialogTitle>
             <DialogDescription>{tagsEdit?.name}</DialogDescription>
           </DialogHeader>
           <div className="py-2">
             {tagsEdit && (
-              <TagEditor
-                value={tagsEdit.tags}
-                onChange={(tags) => setTagsEdit((prev) => (prev ? { ...prev, tags } : prev))}
+              <ProjectTagSelector
+                tags={globalTags}
+                selectedIds={tagsEdit.tagIds}
+                onChange={(tagIds) => setTagsEdit((prev) => (prev ? { ...prev, tagIds } : prev))}
+                onManageGlobal={() => setGlobalTagsOpen(true)}
               />
             )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTagsEdit(null)}>Cancelar (Cancel)</Button>
             <Button
-              onClick={() => tagsEdit && tagsM.mutate({ id: tagsEdit.id, tags: tagsEdit.tags })}
+              onClick={() => tagsEdit && tagsM.mutate({
+                id: tagsEdit.id,
+                tagIds: tagsEdit.tagIds.filter((id) => globalTags.some((tag) => tag.id === id)),
+              })}
               disabled={tagsM.isPending}
             >
               <Check className="mr-2 h-4 w-4" /> Salvar (Save)
@@ -443,6 +542,17 @@ function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Gerenciar Tags Globais */}
+      <GlobalTagsDialog
+        open={globalTagsOpen}
+        onOpenChange={setGlobalTagsOpen}
+        tags={globalTags}
+        onCreate={(payload) => createGlobalTagM.mutate(payload)}
+        onUpdate={(payload) => updateGlobalTagM.mutate(payload)}
+        onDelete={(id) => deleteGlobalTagM.mutate(id)}
+        busy={createGlobalTagM.isPending || updateGlobalTagM.isPending || deleteGlobalTagM.isPending}
+      />
 
 
       {/* Join code */}
@@ -501,7 +611,7 @@ function TagBadges({ tags }: { tags: ProjectTag[] }) {
         const s = tagStyle(t.color);
         return (
           <span
-            key={`${t.name}-${i}`}
+            key={t.id || `${t.name}-${i}`}
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
           >
             {t.name}
@@ -512,68 +622,194 @@ function TagBadges({ tags }: { tags: ProjectTag[] }) {
   );
 }
 
-function TagEditor({ value, onChange }: { value: ProjectTag[]; onChange: (t: ProjectTag[]) => void }) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<string>(TAG_COLORS[0].name);
+function ProjectTagSelector({
+  tags,
+  selectedIds,
+  onChange,
+  onManageGlobal,
+}: {
+  tags: GlobalProjectTag[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  onManageGlobal: () => void;
+}) {
+  function toggle(id: string, checked: boolean) {
+    const current = new Set(selectedIds);
+    if (checked) current.add(id);
+    else current.delete(id);
+    onChange(Array.from(current));
+  }
 
-  function addTag() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    if (value.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) return;
-    onChange([...value, { name: trimmed, color }]);
-    setName("");
+  if (tags.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
+        <p className="text-xs text-muted-foreground">Nenhuma tag global criada (No global tags created)</p>
+        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onManageGlobal}>
+          <Plus className="mr-2 h-4 w-4" /> Criar Tag Global (Create Global Tag)
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
-        {value.length === 0 && (
-          <span className="text-xs text-muted-foreground italic">Nenhuma tag adicionada (No tags added)</span>
-        )}
-        {value.map((t, i) => {
-          const s = tagStyle(t.color);
+      <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+        {tags.map((tag) => {
+          const style = tagStyle(tag.color);
+          const checked = selectedIds.includes(tag.id);
           return (
-            <span
-              key={`${t.name}-${i}`}
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
+            <label
+              key={tag.id}
+              className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-slate-50"
             >
-              {t.name}
-              <button
-                type="button"
-                onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-                className="hover:opacity-70"
-                aria-label="Remover tag"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
+              <Checkbox checked={checked} onCheckedChange={(value) => toggle(tag.id, value === true)} />
+              <span className={`inline-flex min-w-0 flex-1 items-center rounded-full px-2.5 py-1 text-xs font-medium ${style.bg} ${style.text}`}>
+                <span className="truncate">{tag.name}</span>
+              </span>
+            </label>
           );
         })}
       </div>
-      <div className="flex items-center gap-2">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-          placeholder="Nome da tag (Tag name)"
-          className="h-9 flex-1"
-          maxLength={40}
+      <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={onManageGlobal}>
+        <Settings className="mr-2 h-3.5 w-3.5" /> Gerenciar Tags Globais (Manage Global Tags)
+      </Button>
+    </div>
+  );
+}
+
+function GlobalTagsDialog({
+  open,
+  onOpenChange,
+  tags,
+  onCreate,
+  onUpdate,
+  onDelete,
+  busy,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tags: GlobalProjectTag[];
+  onCreate: (payload: { name: string; color: string }) => void;
+  onUpdate: (payload: { id: string; name: string; color: string }) => void;
+  onDelete: (id: string) => void;
+  busy: boolean;
+}) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(TAG_COLORS[0].name);
+  const [editing, setEditing] = useState<{ id: string; name: string; color: string } | null>(null);
+
+  function createTag() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreate({ name: trimmed, color });
+    setName("");
+  }
+
+  function startEdit(tag: GlobalProjectTag) {
+    setEditing({ id: tag.id, name: tag.name, color: tag.color });
+  }
+
+  function saveEdit() {
+    if (!editing?.name.trim()) return;
+    onUpdate({ id: editing.id, name: editing.name.trim(), color: editing.color });
+    setEditing(null);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { onOpenChange(next); if (!next) setEditing(null); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Gerenciar Tags Globais (Manage Global Tags)</DialogTitle>
+          <DialogDescription>Crie, edite ou exclua tags reutilizáveis dos projetos (Create, edit, or delete reusable project tags).</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-3">
+            <Label className="text-xs text-muted-foreground">Nova Tag Global (New Global Tag)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createTag(); } }}
+                placeholder="Nome da tag (Tag name)"
+                className="h-9 flex-1 bg-white"
+                maxLength={40}
+              />
+              <Button type="button" size="sm" onClick={createTag} disabled={busy || !name.trim()}>
+                <Plus className="mr-2 h-4 w-4" /> Criar (Create)
+              </Button>
+            </div>
+            <ColorPicker value={color} onChange={setColor} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Tags Existentes (Existing Tags)</Label>
+            <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+              {tags.length === 0 && (
+                <div className="py-6 text-center text-xs text-muted-foreground">Nenhuma tag cadastrada (No tags registered)</div>
+              )}
+              {tags.map((tag) => {
+                const style = tagStyle(tag.color);
+                const isEditing = editing?.id === tag.id;
+                return (
+                  <div key={tag.id} className="rounded-md border border-slate-100 p-2">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={editing.name}
+                          onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                          placeholder="Nome da tag (Tag name)"
+                          className="h-9"
+                          maxLength={40}
+                        />
+                        <ColorPicker value={editing.color} onChange={(next) => setEditing({ ...editing, color: next })} />
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancelar (Cancel)</Button>
+                          <Button type="button" size="sm" onClick={saveEdit} disabled={busy || !editing.name.trim()}>
+                            <Check className="mr-2 h-4 w-4" /> Salvar (Save)
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className={`min-w-0 flex-1 rounded-full px-2.5 py-1 text-xs font-medium ${style.bg} ${style.text}`}>
+                          <span className="block truncate">{tag.name}</span>
+                        </span>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(tag)} title="Editar Tag (Edit Tag)">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tag.id)} title="Excluir Tag (Delete Tag)" disabled={busy}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar (Close)</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ColorPicker({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {TAG_COLORS.map((c) => (
+        <button
+          key={c.name}
+          type="button"
+          title={c.label}
+          onClick={() => onChange(c.name)}
+          className={`h-6 w-6 rounded-full ${c.dot} ring-2 ring-offset-1 transition ${value === c.name ? "ring-slate-800" : "ring-transparent"}`}
         />
-        <Button type="button" size="sm" variant="secondary" onClick={addTag} disabled={!name.trim()}>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {TAG_COLORS.map((c) => (
-          <button
-            key={c.name}
-            type="button"
-            title={c.label}
-            onClick={() => setColor(c.name)}
-            className={`h-6 w-6 rounded-full ${c.dot} ring-2 ring-offset-1 transition ${color === c.name ? "ring-slate-800" : "ring-transparent"}`}
-          />
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
