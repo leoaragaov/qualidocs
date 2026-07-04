@@ -327,9 +327,18 @@ function ProjectPage() {
         </Tabs>
 
       </main>
+      <BackupDialog
+        open={backupOpen}
+        onOpenChange={setBackupOpen}
+        projectId={id}
+        projectName={project?.projeto || undefined}
+        snapshot={(data as any) ?? null}
+        onRestored={() => invalidate()}
+      />
     </div>
   );
 }
+
 
 // ============ Reusable field ============
 function textValue(value: unknown) {
