@@ -591,7 +591,7 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
                   if (savingNew) return;
                   setSavingNew(true);
                   try {
-                    await onSave(newDraft);
+                    await onSave(sanitizeDeep(newDraft));
                     setNewDraft(null);
                     toast.success("Adicionado");
                   } catch (e: any) {
