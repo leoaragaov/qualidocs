@@ -457,7 +457,7 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
       <RowEditor
         title=""
         rows={safeRows}
-        newRow={() => ({ project_id: projectId, us_id: "", modulo: "", ator: "", story: "", criterio1: "", criterio2: "", prioridade: "Média", sprint: "", status: "A Documentar" }) as TmsUserStory}
+        newRow={() => ({ id: crypto.randomUUID(), project_id: projectId, us_id: "", modulo: "", ator: "", story: "", criterio1: "", criterio2: "", prioridade: "Média", sprint: "", status: "A Documentar" }) as TmsUserStory}
         onSave={async (r) => { await up({ data: r as any }); onChange(); }}
         onDelete={async (id) => { await del({ data: { table: "user_stories", id } }); onChange(); }}
         render={(r, upd) => (
