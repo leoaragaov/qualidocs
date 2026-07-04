@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +46,76 @@ export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Meus Projetos · QualiDocs" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
+  pendingComponent: ProjectsLoading,
+  errorComponent: ProjectsRouteError,
+  notFoundComponent: ProjectsNotFound,
 });
+
+function ProjectsLoading() {
+  return (
+    <div className="min-h-screen bg-slate-50/60 px-6 py-10">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-10 w-full" />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectsRouteError({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  const message = error?.message || "Erro desconhecido";
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50/60 px-4">
+      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Erro ao renderizar seus projetos</h1>
+        <p className="mt-2 text-sm text-muted-foreground">A tela de projetos encontrou uma falha ao carregar ou renderizar os dados.</p>
+        <pre className="mt-4 max-h-44 overflow-auto rounded-lg bg-slate-50 p-3 text-left text-xs text-rose-700 whitespace-pre-wrap">
+          {message}
+        </pre>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <Button onClick={() => { router.invalidate(); reset(); }}>Tentar novamente</Button>
+          <Button variant="outline" asChild><Link to="/auth">Ir para login</Link></Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectsNotFound() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50/60 px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-xl font-semibold tracking-tight">Projetos não encontrados</h1>
+        <p className="mt-2 text-sm text-muted-foreground">A rota solicitada não está disponível.</p>
+        <Button className="mt-5" asChild><Link to="/projects">Voltar para projetos</Link></Button>
+      </div>
+    </div>
+  );
+}
+
+function readLocalDraft() {
+  try {
+    const raw = localStorage.getItem("citse-qa-data-v1");
+    if (!raw || raw === "undefined" || raw === "null" || raw.length <= 20) return null;
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem("citse-qa-data-v1");
+    return null;
+  }
+}
 
 function fmt(d: string) {
   try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: ptBR }); }
@@ -79,11 +149,8 @@ function DashboardPage() {
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
-    try {
-      const raw = localStorage.getItem("citse-qa-data-v1");
-      setHasDraft(!!raw && raw.length > 20);
-    } catch { /* ignore */ }
+    supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null));
+    setHasDraft(!!readLocalDraft());
   }, []);
 
   const createM = useMutation({
@@ -109,9 +176,8 @@ function DashboardPage() {
 
   const importM = useMutation({
     mutationFn: async () => {
-      const raw = localStorage.getItem("citse-qa-data-v1");
-      if (!raw) throw new Error("Nenhum rascunho local encontrado.");
-      const d = JSON.parse(raw);
+      const d = readLocalDraft();
+      if (!d) throw new Error("Nenhum rascunho local encontrado.");
       return doImport({
         data: {
           projeto: d.plano?.projeto ?? "",
@@ -164,11 +230,18 @@ function DashboardPage() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const owned = data?.owned ?? [];
-  const collab = data?.collaborating ?? [];
-  const filter = (p: MyProjectSummary) =>
-    !q.trim() || p.projeto.toLowerCase().includes(q.toLowerCase()) ||
-    (p.owner_name ?? "").toLowerCase().includes(q.toLowerCase());
+  if (isPending || !data || !Array.isArray(data.owned) || !Array.isArray(data.collaborating)) {
+    return <ProjectsLoading />;
+  }
+
+  const owned = data.owned.filter(Boolean);
+  const collab = data.collaborating.filter(Boolean);
+  const query = q.trim().toLowerCase();
+  const filter = (p: MyProjectSummary) => {
+    const name = p?.projeto?.toLowerCase?.() ?? "";
+    const owner = p?.owner_name?.toLowerCase?.() ?? "";
+    return !query || name.includes(query) || owner.includes(query);
+  };
   const ownedF = owned.filter(filter);
   const collabF = collab.filter(filter);
 
@@ -344,37 +417,38 @@ function DashboardPage() {
 }
 
 function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string) => void }) {
+  const id = p?.id ?? "";
   return (
     <Card className="group rounded-2xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-0"><Crown className="h-3 w-3 mr-1" /> Proprietário</Badge>
-            {p.pending_requests > 0 && (
+            {(p?.pending_requests ?? 0) > 0 && (
               <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-0">
-                {p.pending_requests} solicitação{p.pending_requests > 1 ? "s" : ""}
+                {(p?.pending_requests ?? 0)} solicitação{(p?.pending_requests ?? 0) > 1 ? "s" : ""}
               </Badge>
             )}
           </div>
-          <CardTitle className="mt-2 text-base truncate">{p.projeto || "(sem nome)"}</CardTitle>
+          <CardTitle className="mt-2 text-base truncate">{p?.projeto || "(sem nome)"}</CardTitle>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => onDelete(p.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => id && onDelete(id)} className="text-muted-foreground hover:text-destructive shrink-0">
           <Trash2 className="h-4 w-4" />
         </Button>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
-        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">{p.objetivo || "Sem objetivo definido."}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">{p?.objetivo || "Sem objetivo definido."}</p>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {p.member_count} {p.member_count === 1 ? "membro" : "membros"}</span>
-          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p.updated_at)}</span>
+          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {(p?.member_count ?? 0)} {(p?.member_count ?? 0) === 1 ? "membro" : "membros"}</span>
+          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p?.updated_at ?? "")}</span>
         </div>
-        {p.codigo_acesso && (
+        {p?.codigo_acesso && (
           <div className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">
-            <KeyRound className="h-3 w-3" /> {p.codigo_acesso}
+            <KeyRound className="h-3 w-3" /> {p?.codigo_acesso}
           </div>
         )}
         <Button asChild size="sm" className="w-full rounded-lg">
-          <Link to="/projects/$id" params={{ id: p.id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/projects/$id" params={{ id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </CardContent>
     </Card>
@@ -382,25 +456,26 @@ function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string
 }
 
 function CollabCard({ p }: { p: MyProjectSummary }) {
+  const id = p?.id ?? "";
   return (
     <Card className="group rounded-2xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-0">{roleLabel(p.my_role)}</Badge>
+          <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-0">{roleLabel(p?.my_role ?? "viewer")}</Badge>
         </div>
-        <CardTitle className="mt-2 text-base truncate">{p.projeto || "(sem nome)"}</CardTitle>
+        <CardTitle className="mt-2 text-base truncate">{p?.projeto || "(sem nome)"}</CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> {p.owner_name || "Proprietário"}
+          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> {p?.owner_name || "Proprietário"}
         </p>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
-        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">{p.objetivo || "Sem descrição."}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">{p?.objetivo || "Sem descrição."}</p>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {p.member_count}</span>
-          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p.updated_at)}</span>
+          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {(p?.member_count ?? 0)}</span>
+          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p?.updated_at ?? "")}</span>
         </div>
         <Button asChild size="sm" variant="secondary" className="w-full rounded-lg">
-          <Link to="/projects/$id" params={{ id: p.id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/projects/$id" params={{ id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </CardContent>
     </Card>
@@ -408,9 +483,9 @@ function CollabCard({ p }: { p: MyProjectSummary }) {
 }
 
 function notificationText(n: NotificationRow): string {
-  const actor = n.actor_name || "Alguém";
-  const proj = n.project_name ?? "um projeto";
-  switch (n.type) {
+  const actor = n?.actor_name || "Alguém";
+  const proj = n?.project_name ?? "um projeto";
+  switch (n?.type) {
     case "access_request": return `${actor} solicitou acesso ao projeto "${proj}".`;
     case "access_approved": return `Seu acesso ao projeto "${proj}" foi aprovado.`;
     case "access_rejected": return `Seu acesso ao projeto "${proj}" foi recusado.`;
@@ -424,8 +499,8 @@ function NotificationsBell() {
   const { data } = useQuery(notificationsQueryOptions());
   const markRead = useServerFn(markNotificationsRead);
   const [open, setOpen] = useState(false);
-  const notifs = data ?? [];
-  const unread = notifs.filter((n) => !n.read_at).length;
+  const notifs = Array.isArray(data) ? data.filter(Boolean) : [];
+  const unread = notifs.filter((n) => !n?.read_at).length;
 
   const markAll = useMutation({
     mutationFn: () => markRead({ data: {} }),
@@ -466,20 +541,20 @@ function NotificationsBell() {
           {notifs.map((n) => {
             const inner = (
               <div className="flex items-start gap-3">
-                <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${n.read_at ? "bg-slate-300" : "bg-primary"}`} />
+                <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${n?.read_at ? "bg-slate-300" : "bg-primary"}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug">{notificationText(n)}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">{fmt(n.created_at)}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{fmt(n?.created_at)}</p>
                 </div>
-                {n.read_at && <Check className="h-3.5 w-3.5 text-slate-300 shrink-0" />}
+                {n?.read_at && <Check className="h-3.5 w-3.5 text-slate-300 shrink-0" />}
               </div>
             );
-            if (n.project_id) {
+            if (n?.project_id) {
               return (
                 <Link
-                  key={n.id}
+                  key={n?.id}
                   to="/projects/$id"
-                  params={{ id: n.project_id }}
+                  params={{ id: n?.project_id }}
                   onClick={() => setOpen(false)}
                   className="block px-4 py-3 hover:bg-slate-50"
                 >
@@ -487,7 +562,7 @@ function NotificationsBell() {
                 </Link>
               );
             }
-            return <div key={n.id} className="px-4 py-3">{inner}</div>;
+            return <div key={n?.id} className="px-4 py-3">{inner}</div>;
           })}
         </div>
       </PopoverContent>
