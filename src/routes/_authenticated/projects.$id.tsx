@@ -386,6 +386,9 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
 }) {
   const [drafts, setDrafts] = useState<Record<string, T>>({});
   const [newDraft, setNewDraft] = useState<T | null>(null);
+  const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
+  const [savingNew, setSavingNew] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
 
   const setDraft = (id: string, r: T) => setDrafts((d) => ({ ...d, [id]: r }));
 
@@ -393,7 +396,7 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
-        <Button size="sm" variant="outline" onClick={() => setNewDraft(newRow())}>
+        <Button size="sm" variant="outline" onClick={() => setNewDraft(newRow())} disabled={!!newDraft}>
           <Plus className="mr-1 h-4 w-4" /> Adicionar
         </Button>
       </CardHeader>
@@ -401,16 +404,51 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
         {(Array.isArray(rows) ? rows.filter(Boolean) : []).map((r) => {
           const draft = drafts[r.id!] ?? r;
           const dirty = JSON.stringify(draft) !== JSON.stringify(r);
+          const isSaving = !!savingIds[r.id!];
+          const isDeleting = !!deletingIds[r.id!];
           return (
             <div key={r.id} className="rounded-md border bg-muted/30 p-3 space-y-2">
               {render(draft, (n) => setDraft(r.id!, n))}
               <div className="flex justify-end gap-2">
                 {dirty && (
-                  <Button size="sm" onClick={async () => { await onSave(draft); setDrafts((d) => { const nd = { ...d }; delete nd[r.id!]; return nd; }); toast.success("Salvo"); }}>
-                    <Save className="mr-1 h-4 w-4" /> Salvar
+                  <Button
+                    size="sm"
+                    disabled={isSaving || isDeleting}
+                    onClick={async () => {
+                      if (savingIds[r.id!]) return;
+                      setSavingIds((s) => ({ ...s, [r.id!]: true }));
+                      try {
+                        await onSave(draft);
+                        setDrafts((d) => { const nd = { ...d }; delete nd[r.id!]; return nd; });
+                        toast.success("Salvo");
+                      } catch (e: any) {
+                        toast.error(e?.message || "Falha ao salvar");
+                      } finally {
+                        setSavingIds((s) => { const ns = { ...s }; delete ns[r.id!]; return ns; });
+                      }
+                    }}
+                  >
+                    <Save className="mr-1 h-4 w-4" /> {isSaving ? "Salvando…" : "Salvar"}
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={async () => { if (confirm("Excluir?")) { await onDelete(r.id!); toast.success("Excluído"); } }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={isSaving || isDeleting}
+                  onClick={async () => {
+                    if (deletingIds[r.id!]) return;
+                    if (!confirm("Excluir?")) return;
+                    setDeletingIds((s) => ({ ...s, [r.id!]: true }));
+                    try {
+                      await onDelete(r.id!);
+                      toast.success("Excluído");
+                    } catch (e: any) {
+                      toast.error(e?.message || "Falha ao excluir");
+                    } finally {
+                      setDeletingIds((s) => { const ns = { ...s }; delete ns[r.id!]; return ns; });
+                    }
+                  }}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -421,9 +459,25 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
           <div className="rounded-md border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
             {render(newDraft, setNewDraft)}
             <div className="flex justify-end gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setNewDraft(null)}>Cancelar</Button>
-              <Button size="sm" onClick={async () => { await onSave(newDraft); setNewDraft(null); toast.success("Adicionado"); }}>
-                <Save className="mr-1 h-4 w-4" /> Salvar
+              <Button size="sm" variant="ghost" disabled={savingNew} onClick={() => setNewDraft(null)}>Cancelar</Button>
+              <Button
+                size="sm"
+                disabled={savingNew}
+                onClick={async () => {
+                  if (savingNew) return;
+                  setSavingNew(true);
+                  try {
+                    await onSave(newDraft);
+                    setNewDraft(null);
+                    toast.success("Adicionado");
+                  } catch (e: any) {
+                    toast.error(e?.message || "Falha ao adicionar");
+                  } finally {
+                    setSavingNew(false);
+                  }
+                }}
+              >
+                <Save className="mr-1 h-4 w-4" /> {savingNew ? "Salvando…" : "Salvar"}
               </Button>
             </div>
           </div>
@@ -432,6 +486,7 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
     </Card>
   );
 }
+
 
 // ============ User Stories ============
 function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows: TmsUserStory[]; onChange: () => void }) {
