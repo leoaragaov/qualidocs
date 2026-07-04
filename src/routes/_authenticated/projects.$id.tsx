@@ -358,13 +358,13 @@ function PlanoTab({ project, schedule, risks, onChange }: {
           <div className="grid gap-2 md:grid-cols-6">
             <Input placeholder="ID" value={textValue(r?.risco_id)} onChange={(e) => upd({ ...r, risco_id: e.target.value })} />
             <Textarea placeholder="Descrição" rows={2} value={textValue(r?.descricao)} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
-            <Select value={textValue(r?.probabilidade || "Média")} onValueChange={(v) => upd({ ...r, probabilidade: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={textValue(r?.probabilidade) || "Média"} onValueChange={(v) => upd({ ...r, probabilidade: v })}>
+              <SelectTrigger><SelectValue placeholder="Probabilidade" /></SelectTrigger>
               <SelectContent>{["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={textValue(r?.impacto || "Médio")} onValueChange={(v) => upd({ ...r, impacto: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{["Alto", "Medio", "Baixo"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            <Select value={textValue(r?.impacto) || "Médio"} onValueChange={(v) => upd({ ...r, impacto: v })}>
+              <SelectTrigger><SelectValue placeholder="Impacto" /></SelectTrigger>
+              <SelectContent>{["Alto", "Médio", "Baixo"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
             <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
             <Textarea placeholder="Mitigação" rows={2} value={textValue(r?.mitigacao)} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
@@ -814,8 +814,8 @@ function BugDialog({ open, ct, projectId, onClose, onSave }: {
         <div className="grid gap-3 md:grid-cols-2">
           <Field label="ID do Bug"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
           <Field label="Severidade">
-            <Select value={b.severidade as string} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={(b.severidade as string) ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
+              <SelectTrigger><SelectValue placeholder="Severidade" /></SelectTrigger>
               <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
@@ -825,8 +825,8 @@ function BugDialog({ open, ct, projectId, onClose, onSave }: {
           <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
           <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
           <Field label="Status">
-            <Select value={b.status as string} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={(b.status as string) ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>{(["Aberto", "Em Correção", "Corrigido", "Retestado"] as BugStatus[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
