@@ -431,7 +431,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       />
 
       <RowEditor
-        title="Riscos"
+        title="Gerenciamento de Riscos (Risk Management)"
         rows={risks}
         newRow={() => ({ id: crypto.randomUUID(), project_id: p?.id ?? "", ordem: (risks?.length ?? 0), risco_id: "", descricao: "", probabilidade: "Média", impacto: "Médio", mitigacao: "", responsavel: "" }) as TmsRisk}
         onSave={async (r) => { await upRisk({ data: r as any }); onChange(); }}
