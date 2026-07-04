@@ -1047,16 +1047,16 @@ function EditBugForm({ bug, onSave, onCancel }: { bug: TmsBug; onSave: (b: TmsBu
   return (
     <>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="ID"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
-        <Field label="Severidade">
+        <Field label="ID do Bug (Bug ID)"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+        <Field label="Severidade (Severity)">
           <Select value={b.severidade ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Título" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
-        <Field label="Comportamento Atual"><Textarea rows={3} value={b?.comportamento_atual || ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
-        <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+        <Field label="Título do Bug (Bug Title)" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+        <Field label="Comportamento Atual (Actual Behavior)"><Textarea rows={3} value={b?.comportamento_atual || ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+        <Field label="Comportamento Esperado (Expected Behavior)"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
         <Field label="Status">
           <Select value={b.status ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
