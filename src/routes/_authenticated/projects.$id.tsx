@@ -816,10 +816,10 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
 
       {/* Metric cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total de Testes" value={summary.total} />
-        <Stat label="% Sucesso" value={`${summary.pctOk}%`} tone="ok" />
-        <Stat label="% Falha" value={`${summary.pctBad}%`} tone="bad" />
-        <Stat label="Pendentes" value={summary.pend} tone="warn" />
+        <Stat label="Total de Casos de Teste (Total Test Cases)" value={summary.total} />
+        <Stat label="% Sucesso (Success %)" value={`${summary.pctOk}%`} tone="ok" />
+        <Stat label="% Falha (Failure %)" value={`${summary.pctBad}%`} tone="bad" />
+        <Stat label="Pendentes (Pending)" value={summary.pend} tone="warn" />
       </div>
 
       {safeRows.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum caso de teste. Cadastre em "CT" primeiro.</CardContent></Card>}
