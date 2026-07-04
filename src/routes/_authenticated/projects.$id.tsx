@@ -292,14 +292,14 @@ function ProjectPage() {
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
           <div className="mb-6 overflow-x-auto">
             <TabsList className="inline-flex h-11 items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 p-1 shadow-sm backdrop-blur">
-              <TabsTrigger value="plano" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Plano</TabsTrigger>
-              <TabsTrigger value="us" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">US <Badge variant="secondary" className="ml-2">{userStories.length}</Badge></TabsTrigger>
-              <TabsTrigger value="ct" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">CT <Badge variant="secondary" className="ml-2">{testCases.length}</Badge></TabsTrigger>
-              <TabsTrigger value="exec" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Execução</TabsTrigger>
-              <TabsTrigger value="bugs" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bugs <Badge variant="secondary" className="ml-2">{bugs.length}</Badge></TabsTrigger>
-              <TabsTrigger value="audit" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Auditoria</TabsTrigger>
-              <TabsTrigger value="matriz" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matriz</TabsTrigger>
-              <TabsTrigger value="membros" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Users className="mr-1 h-3.5 w-3.5" />Membros</TabsTrigger>
+              <TabsTrigger value="plano" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Plano de Teste (Test Plan)</TabsTrigger>
+              <TabsTrigger value="us" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Histórias de Usuário (User Stories) <Badge variant="secondary" className="ml-2">{userStories.length}</Badge></TabsTrigger>
+              <TabsTrigger value="ct" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Casos de Teste (Test Cases) <Badge variant="secondary" className="ml-2">{testCases.length}</Badge></TabsTrigger>
+              <TabsTrigger value="exec" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Execução (Execution)</TabsTrigger>
+              <TabsTrigger value="bugs" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Relatório de Bugs (Bug Report) <Badge variant="secondary" className="ml-2">{bugs.length}</Badge></TabsTrigger>
+              <TabsTrigger value="audit" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Auditoria (Audit)</TabsTrigger>
+              <TabsTrigger value="matriz" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matriz de Rastreabilidade (Traceability Matrix)</TabsTrigger>
+              <TabsTrigger value="membros" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Users className="mr-1 h-3.5 w-3.5" />Membros (Members)</TabsTrigger>
             </TabsList>
           </div>
 
