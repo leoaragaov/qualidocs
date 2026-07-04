@@ -471,6 +471,23 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   const [savingNew, setSavingNew] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
+  const newDraftRef = useRef<HTMLDivElement | null>(null);
+  const [flashNew, setFlashNew] = useState(false);
+
+  useEffect(() => {
+    if (!newDraft || !newDraftRef.current) return;
+    const el = newDraftRef.current;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const firstInput = el.querySelector<HTMLElement>(
+      'input:not([type="hidden"]):not([disabled]), textarea:not([disabled])',
+    );
+    if (firstInput) {
+      setTimeout(() => firstInput.focus({ preventScroll: true }), 250);
+    }
+    setFlashNew(true);
+    const t = setTimeout(() => setFlashNew(false), 1500);
+    return () => clearTimeout(t);
+  }, [newDraft?.id]);
 
   const setDraft = (id: string, r: T) => setDrafts((d) => ({ ...d, [id]: r }));
 
@@ -538,7 +555,10 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
           );
         })}
         {newDraft && (
-          <div className="rounded-md border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
+          <div
+            ref={newDraftRef}
+            className={`rounded-md border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2 transition-all duration-700 ${flashNew ? "ring-4 ring-blue-500 border-blue-500 shadow-lg shadow-blue-500/30" : ""}`}
+          >
             {render(newDraft, setNewDraft)}
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="ghost" disabled={savingNew} onClick={() => setNewDraft(null)}>Cancelar</Button>
