@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState  } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
@@ -235,7 +235,7 @@ function ProjectPage() {
           <TabsContent value="exec"><ExecutionTab projectId={id} rows={testCases} onChange={invalidate} /></TabsContent>
           <TabsContent value="bugs"><BugsTab projectId={id} rows={bugs} testCases={testCases} onChange={invalidate} /></TabsContent>
           <TabsContent value="audit"><AuditTab projectId={id} /></TabsContent>
-          <TabsContent value="matriz"><MatrizTab userStories={data.userStories} testCases={testCases} /></TabsContent>
+          <TabsContent value="matriz"><MatrizTab userStories={userStories} testCases={testCases} /></TabsContent>
           <TabsContent value="membros"><MembersTab projectId={id} /></TabsContent>
         </Tabs>
 
@@ -245,6 +245,10 @@ function ProjectPage() {
 }
 
 // ============ Reusable field ============
+function textValue(value: unknown) {
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
@@ -335,11 +339,11 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         onDelete={async (rid) => { await del({ data: { table: "schedule_items", id: rid } }); onChange(); }}
         render={(r, upd) => (
           <div className="grid gap-2 md:grid-cols-6">
-            <Input placeholder="Fase" value={r.fase} onChange={(e) => upd({ ...r, fase: e.target.value })} />
-            <Input placeholder="Atividade" value={r.atividade} onChange={(e) => upd({ ...r, atividade: e.target.value })} className="md:col-span-2" />
+            <Input placeholder="Fase" value={textValue(r?.fase)} onChange={(e) => upd({ ...r, fase: e.target.value })} />
+            <Input placeholder="Atividade" value={textValue(r?.atividade)} onChange={(e) => upd({ ...r, atividade: e.target.value })} className="md:col-span-2" />
             <Input type="date" value={r.inicio ?? ""} onChange={(e) => upd({ ...r, inicio: e.target.value || null })} />
             <Input type="date" value={r.fim ?? ""} onChange={(e) => upd({ ...r, fim: e.target.value || null })} />
-            <Input placeholder="Responsável" value={r.responsavel} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+            <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
           </div>
         )}
       />
@@ -352,18 +356,18 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         onDelete={async (rid) => { await del({ data: { table: "risks", id: rid } }); onChange(); }}
         render={(r, upd) => (
           <div className="grid gap-2 md:grid-cols-6">
-            <Input placeholder="ID" value={r.risco_id} onChange={(e) => upd({ ...r, risco_id: e.target.value })} />
-            <Textarea placeholder="Descrição" rows={2} value={r.descricao} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
-            <Select value={r.probabilidade} onValueChange={(v) => upd({ ...r, probabilidade: v })}>
+            <Input placeholder="ID" value={textValue(r?.risco_id)} onChange={(e) => upd({ ...r, risco_id: e.target.value })} />
+            <Textarea placeholder="Descrição" rows={2} value={textValue(r?.descricao)} onChange={(e) => upd({ ...r, descricao: e.target.value })} className="md:col-span-2" />
+            <Select value={textValue(r?.probabilidade || "Média")} onValueChange={(v) => upd({ ...r, probabilidade: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={r.impacto} onValueChange={(v) => upd({ ...r, impacto: v })}>
+            <Select value={textValue(r?.impacto || "Médio")} onValueChange={(v) => upd({ ...r, impacto: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{["Alto", "Medio", "Baixo"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
-            <Input placeholder="Responsável" value={r.responsavel} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
-            <Textarea placeholder="Mitigação" rows={2} value={r.mitigacao} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
+            <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+            <Textarea placeholder="Mitigação" rows={2} value={textValue(r?.mitigacao)} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
           </div>
         )}
       />
@@ -445,7 +449,7 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
             <SelectTrigger className="h-9 w-[240px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas ({safeRows.length})</SelectItem>
-              {safeRows.map((u, i) => <SelectItem key={u.id} value={u.id}>{u.us_id || `US #${i + 1}`}</SelectItem>)}
+              {safeRows.map((u, i) => <SelectItem key={u?.id ?? `us-${i}`} value={u?.id ?? `us-${i}`}>{u?.us_id || `US #${i + 1}`}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -459,25 +463,25 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
         render={(r, upd) => (
           (filter === "all" || filter === r.id || !r.id) && (
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="ID_US"><Input placeholder="US-MOD-001" value={r.us_id} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
-              <Field label="Módulo"><Input value={r.modulo} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
-              <Field label="Ator / Perfil"><Input value={r.ator} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
+              <Field label="ID_US"><Input placeholder="US-MOD-001" value={textValue(r?.us_id)} onChange={(e) => upd({ ...r, us_id: e.target.value })} /></Field>
+              <Field label="Módulo"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Ator / Perfil"><Input value={textValue(r?.ator)} onChange={(e) => upd({ ...r, ator: e.target.value })} /></Field>
               <Field label="User Story (Eu como… Quero… Para que…)" className="md:col-span-3">
-                <Textarea rows={3} value={r.story} onChange={(e) => upd({ ...r, story: e.target.value })} />
+                <Textarea rows={3} value={textValue(r?.story)} onChange={(e) => upd({ ...r, story: e.target.value })} />
               </Field>
-              <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={r.criterio1} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
-              <Field label="Critério de Aceitação 2" className="md:col-span-3"><Textarea rows={2} value={r.criterio2} onChange={(e) => upd({ ...r, criterio2: e.target.value })} /></Field>
+              <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio1)} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
+              <Field label="Critério de Aceitação 2" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio2)} onChange={(e) => upd({ ...r, criterio2: e.target.value })} /></Field>
               <Field label="Prioridade">
-                <Select value={r.prioridade} onValueChange={(v) => upd({ ...r, prioridade: v })}>
+                <Select value={textValue(r?.prioridade || "Média")} onValueChange={(v) => upd({ ...r, prioridade: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["Alta", "Média", "Baixa"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Sprint / Release"><Input value={r.sprint} onChange={(e) => upd({ ...r, sprint: e.target.value })} /></Field>
+              <Field label="Sprint / Release"><Input value={textValue(r?.sprint)} onChange={(e) => upd({ ...r, sprint: e.target.value })} /></Field>
               <Field label="Status">
-                <Select value={r.status} onValueChange={(v) => upd({ ...r, status: v })}>
+                <Select value={textValue(r?.status || "Pendente")} onValueChange={(v) => upd({ ...r, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["A Documentar", "Em Desenvolvimento", "Pronto para Teste", "Em Teste", "Aprovado", "Rejeitado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -508,7 +512,7 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
             <SelectTrigger className="h-9 w-[240px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos ({safeRows.length})</SelectItem>
-              {safeRows.map((c, i) => <SelectItem key={c.id} value={c.id}>{c.ct_id || `CT #${i + 1}`}</SelectItem>)}
+              {safeRows.map((c, i) => <SelectItem key={c?.id ?? `ct-${i}`} value={c?.id ?? `ct-${i}`}>{c?.ct_id || `CT #${i + 1}`}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -522,22 +526,22 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
         render={(r, upd) => (
           (filter === "all" || filter === r.id || !r.id) && (
             <div className="grid gap-3 md:grid-cols-4">
-              <Field label="ID_CT"><Input placeholder="CT-MOD-001" value={r.ct_id} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
-              <Field label="ID_US"><Input placeholder="US-MOD-001" value={r.id_us} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
-              <Field label="Módulo"><Input value={r.modulo} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="ID_CT"><Input placeholder="CT-MOD-001" value={textValue(r?.ct_id)} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
+              <Field label="ID_US"><Input placeholder="US-MOD-001" value={textValue(r?.id_us)} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
+              <Field label="Módulo"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
               <Field label="Tipo">
-                <Select value={r.tipo} onValueChange={(v) => upd({ ...r, tipo: v })}>
+                <Select value={textValue(r?.tipo || "Funcional")} onValueChange={(v) => upd({ ...r, tipo: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["Funcional", "Não Funcional", "Integração", "Usabilidade", "Performance", "Segurança", "Regressão", "Smoke"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Pré-condições" className="md:col-span-2"><Textarea rows={3} value={r.precondicoes} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
-              <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={r.massa} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
-              <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={r.passos} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
-              <Field label="Resultado Esperado" className="md:col-span-2"><Textarea rows={4} value={r.esperado} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
-              <Field label="Observações" className="md:col-span-4"><Textarea rows={2} value={r.observacoes} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
+              <Field label="Pré-condições" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
+              <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
+              <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
+              <Field label="Resultado Esperado" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
+              <Field label="Observações" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
             </div>
           )
         )}
@@ -864,13 +868,13 @@ function BugsTab({ projectId, rows, testCases, onChange }: {
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground">{b.bug_id}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sevColor[b?.severidade as BugSeverity] ?? "bg-slate-100 text-slate-700"}`}>{b.severidade}</span>
-                <Badge variant={b.status === "Corrigido" || b.status === "Retestado" ? "secondary" : "default"}>{b.status}</Badge>
+                <span className="font-mono text-xs text-muted-foreground">{b?.bug_id || "(sem ID)"}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sevColor[b?.severidade as BugSeverity] ?? "bg-slate-100 text-slate-700"}`}>{b?.severidade || "—"}</span>
+                <Badge variant={b.status === "Corrigido" || b.status === "Retestado" ? "secondary" : "default"}>{b?.status || "—"}</Badge>
                 {b.test_case_id && <span className="text-xs text-muted-foreground">CT: {ctMap[b.test_case_id] ?? "—"}</span>}
               </div>
-              <p className="mt-1 text-sm font-medium">{b.titulo || "(sem título)"}</p>
-              <p className="text-xs text-muted-foreground line-clamp-1">{b.comportamento_atual}</p>
+              <p className="mt-1 text-sm font-medium">{b?.titulo || "(sem título)"}</p>
+              <p className="text-xs text-muted-foreground line-clamp-1">{b?.comportamento_atual || ""}</p>
             </div>
             <div className="flex gap-1">
               <Button size="sm" variant="outline" onClick={() => setEditing(b)}>Editar</Button>
@@ -902,22 +906,22 @@ function BugsTab({ projectId, rows, testCases, onChange }: {
 }
 
 function EditBugForm({ bug, onSave, onCancel }: { bug: TmsBug; onSave: (b: TmsBug) => Promise<void>; onCancel: () => void }) {
-  const [b, setB] = useState<TmsBug>(bug);
+  const [b, setB] = useState<TmsBug>({ ...bug, bug_id: bug?.bug_id ?? "", titulo: bug?.titulo ?? "", severidade: bug?.severidade ?? "Média", comportamento_atual: bug?.comportamento_atual ?? "", comportamento_esperado: bug?.comportamento_esperado ?? "", status: bug?.status ?? "Aberto" });
   return (
     <>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="ID"><Input value={b.bug_id} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
+        <Field label="ID"><Input value={b.bug_id ?? ""} onChange={(e) => setB({ ...b, bug_id: e.target.value })} /></Field>
         <Field label="Severidade">
-          <Select value={b.severidade} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
+          <Select value={b.severidade ?? "Média"} onValueChange={(v) => setB({ ...b, severidade: v as BugSeverity })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{(["Alta", "Média", "Baixa"] as BugSeverity[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Título" className="md:col-span-2"><Input value={b.titulo} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
-        <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
-        <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
+        <Field label="Título" className="md:col-span-2"><Input value={b.titulo ?? ""} onChange={(e) => setB({ ...b, titulo: e.target.value })} /></Field>
+        <Field label="Comportamento Atual"><Textarea rows={3} value={b?.comportamento_atual || ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
+        <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
         <Field label="Status">
-          <Select value={b.status} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
+          <Select value={b.status ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{(["Aberto", "Em Correção", "Corrigido", "Retestado"] as BugStatus[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
@@ -1074,7 +1078,7 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
             <tr className="bg-muted">
               <th className="border p-2 text-left">ID_US</th>
               <th className="border p-2 text-left">Módulo</th>
-              {safeCases.map((c) => <th key={c.id} className="border p-2 text-center">{c.ct_id || "?"}</th>)}
+              {safeCases.map((c, i) => <th key={c?.id ?? `ct-${i}`} className="border p-2 text-center">{c?.ct_id || "?"}</th>)}
               <th className="border p-2 text-center">Cobertura</th>
             </tr>
           </thead>
@@ -1085,8 +1089,8 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
               const pct = safeCases.length ? Math.round((total / safeCases.length) * 100) : 0;
               return (
                 <tr key={us.id}>
-                  <td className="border p-2 font-medium">{us.us_id}</td>
-                  <td className="border p-2">{us.modulo}</td>
+                  <td className="border p-2 font-medium">{us?.us_id || "—"}</td>
+                  <td className="border p-2">{us?.modulo || "—"}</td>
                   {cover.map((b, j) => <td key={j} className="border p-2 text-center">{b ? "✅" : "🔲"}</td>)}
                   <td className={`border p-2 text-center font-semibold ${total ? "text-green-600" : "text-red-600"}`}>{pct}%</td>
                 </tr>
