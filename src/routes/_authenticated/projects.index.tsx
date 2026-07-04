@@ -139,11 +139,12 @@ function fmt(d: string) {
 }
 
 function roleLabel(r: MyProjectSummary["my_role"]) {
-  return r === "owner" ? "Proprietário"
-    : r === "admin" ? "Administrador"
-    : r === "collaborator" ? "Colaborador"
-    : "Visualizador";
+  return r === "owner" ? "Proprietário (Owner)"
+    : r === "admin" ? "Administrador (Admin)"
+    : r === "collaborator" ? "Colaborador (Collaborator)"
+    : "Visualizador (Viewer)";
 }
+
 
 function DashboardPage() {
   const create = useServerFn(createProject);
