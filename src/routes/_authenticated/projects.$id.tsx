@@ -555,7 +555,10 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
           );
         })}
         {newDraft && (
-          <div className="rounded-md border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
+          <div
+            ref={newDraftRef}
+            className={`rounded-md border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2 transition-all duration-700 ${flashNew ? "ring-4 ring-blue-500 border-blue-500 shadow-lg shadow-blue-500/30" : ""}`}
+          >
             {render(newDraft, setNewDraft)}
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="ghost" disabled={savingNew} onClick={() => setNewDraft(null)}>Cancelar</Button>
