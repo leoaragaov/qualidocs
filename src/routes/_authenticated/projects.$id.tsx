@@ -663,10 +663,10 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
         render={(r, upd) => (
           (filter === "all" || filter === r.id || !r.id) && (
             <div className="grid gap-3 md:grid-cols-4">
-              <Field label="ID_CT"><Input placeholder="CT-MOD-001" value={textValue(r?.ct_id)} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
-              <Field label="ID_US"><Input placeholder="US-MOD-001" value={textValue(r?.id_us)} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
-              <Field label="Módulo"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
-              <Field label="Tipo">
+              <Field label="ID do Caso de Teste (Test Case ID)"><Input placeholder="CT-MOD-001" value={textValue(r?.ct_id)} onChange={(e) => upd({ ...r, ct_id: e.target.value })} /></Field>
+              <Field label="ID da História de Usuário (User Story ID)"><Input placeholder="US-MOD-001" value={textValue(r?.id_us)} onChange={(e) => upd({ ...r, id_us: e.target.value })} /></Field>
+              <Field label="Módulo (Module)"><Input value={textValue(r?.modulo)} onChange={(e) => upd({ ...r, modulo: e.target.value })} /></Field>
+              <Field label="Tipo de Teste (Test Type)">
                 <Select value={textValue(r?.tipo || "Funcional")} onValueChange={(v) => upd({ ...r, tipo: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -674,11 +674,11 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Pré-condições" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
-              <Field label="Massa de Dados" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
-              <Field label="Passo a Passo" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
-              <Field label="Resultado Esperado" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
-              <Field label="Observações" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
+              <Field label="Pré-condições (Pre-conditions)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.precondicoes)} onChange={(e) => upd({ ...r, precondicoes: e.target.value })} /></Field>
+              <Field label="Massa de Dados (Test Data)" className="md:col-span-2"><Textarea rows={3} value={textValue(r?.massa)} onChange={(e) => upd({ ...r, massa: e.target.value })} /></Field>
+              <Field label="Passos de Execução (Execution Steps)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.passos)} onChange={(e) => upd({ ...r, passos: e.target.value })} /></Field>
+              <Field label="Resultado Esperado (Expected Result)" className="md:col-span-2"><Textarea rows={4} value={textValue(r?.esperado)} onChange={(e) => upd({ ...r, esperado: e.target.value })} /></Field>
+              <Field label="Observações (Notes)" className="md:col-span-4"><Textarea rows={2} value={textValue(r?.observacoes)} onChange={(e) => upd({ ...r, observacoes: e.target.value })} /></Field>
             </div>
           )
         )}
