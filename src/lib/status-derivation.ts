@@ -30,32 +30,87 @@ export function deriveUsStatus(us: TmsUserStory, cases: TmsTestCase[]): DerivedU
   return "Em Teste";
 }
 
-const EXEC_ACTIVITY = /executar\s+(o\s+)?plano/i;
-const REPORT_ACTIVITY = /(reportar\s+bugs|montar\s+relat[óo]rio|relat[óo]rio\s+de\s+resultados)/i;
+const PLAN_ACTIVITY = /(elaborar\s+(o\s+)?plano|planejamento|planejar)/i;
+const EXEC_ACTIVITY = /(executar\s+(o\s+)?plano|execu[cç][aã]o)/i;
+const REPORT_ACTIVITY = /(reportar\s+bugs|montar\s+relat[óo]rio|relat[óo]rio(\s+de\s+resultados)?)/i;
 
 export type ScheduleStatus = "A Fazer" | "Em Andamento" | "Concluído";
 
+type Phase = "plan" | "exec" | "report" | null;
+
+function phaseOf(label: string): Phase {
+  if (PLAN_ACTIVITY.test(label)) return "plan";
+  if (EXEC_ACTIVITY.test(label)) return "exec";
+  if (REPORT_ACTIVITY.test(label)) return "report";
+  return null;
+}
+
+/**
+ * Compute the automated status for every schedule row, applying the cascade:
+ * plan → exec → report. Rows whose activity name doesn't match any phase are
+ * left untouched (returns null for that index).
+ */
+export function deriveScheduleStatuses(
+  rows: TmsSchedule[],
+  cases: TmsTestCase[],
+  bugs: TmsBug[],
+): (ScheduleStatus | null)[] {
+  const total = cases.length;
+  const executed = cases.filter((c) => c.status && c.status !== "Pendente").length;
+  const openBugs = bugs.filter((b) => b.status === "Aberto" || b.status === "Em Correção").length;
+
+  // First pass — independent computation
+  const execStatus: ScheduleStatus =
+    total === 0
+      ? "A Fazer"
+      : executed === 0
+        ? "Em Andamento" // planejamento concluded (see below) → execução parte de "Em Andamento"
+        : executed >= total
+          ? "Concluído"
+          : "Em Andamento";
+
+  const reportStatus: ScheduleStatus =
+    execStatus === "Concluído"
+      ? openBugs > 0
+        ? "Em Andamento"
+        : "Concluído"
+      : "A Fazer";
+
+  // Plano: concluído se existir CT cadastrado, ou se execução/relatório já avançaram
+  const planStatus: ScheduleStatus =
+    total > 0 || execStatus !== "A Fazer" || reportStatus === "Concluído"
+      ? "Concluído"
+      : "A Fazer";
+
+  // Segunda passada: se planejamento está concluído mas nenhum teste foi executado,
+  // execução vai para "Em Andamento" (já é o default acima quando total===0? não —
+  // total===0 mantém "A Fazer"). Ajuste:
+  const finalExec: ScheduleStatus =
+    planStatus === "Concluído" && total === 0
+      ? "Em Andamento"
+      : execStatus;
+
+  return rows.map((r) => {
+    switch (phaseOf((r?.atividade ?? "").toString())) {
+      case "plan":
+        return planStatus;
+      case "exec":
+        return finalExec;
+      case "report":
+        return reportStatus;
+      default:
+        return null;
+    }
+  });
+}
+
+/** Backwards-compatible single-row helper. */
 export function deriveScheduleStatus(
   row: TmsSchedule,
   cases: TmsTestCase[],
   bugs: TmsBug[],
 ): ScheduleStatus | null {
-  const label = (row?.atividade ?? "").toString();
-  const total = cases.length;
-  const executed = cases.filter((c) => c.status && c.status !== "Pendente").length;
-
-  if (EXEC_ACTIVITY.test(label)) {
-    if (total === 0) return null;
-    if (executed === 0) return "A Fazer";
-    if (executed >= total) return "Concluído";
-    return "Em Andamento";
-  }
-  if (REPORT_ACTIVITY.test(label)) {
-    if (total === 0 || executed < total) return null; // wait for execution to finish
-    const openBugs = bugs.filter((b) => b.status === "Aberto" || b.status === "Em Correção").length;
-    return openBugs > 0 ? "Em Andamento" : "Concluído";
-  }
-  return null;
+  return deriveScheduleStatuses([row], cases, bugs)[0];
 }
 
 export function usBadgeClass(s: DerivedUsStatus): string {
