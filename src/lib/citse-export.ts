@@ -391,20 +391,20 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
   buildTable(
     wb, "Histórias de Usuário", "📖  HISTÓRIAS DE USUÁRIO",
     [
-      { label: "ID_US", width: 14 }, { label: "Módulo", width: 22 },
-      { label: "Ator", width: 22 }, { label: "User Story", width: 42 },
-      { label: "Critério 1", width: 42 }, { label: "Critério 2", width: 42 },
-      { label: "Prioridade", width: 12 }, { label: "Sprint", width: 14 }, { label: "Status", width: 14 },
+      { label: "ID da História de Usuário (User Story ID)", width: 28 }, { label: "Módulo (Module)", width: 22 },
+      { label: "Ator / Perfil (Actor / Role)", width: 22 }, { label: "História de Usuário (User Story)", width: 42 },
+      { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 }, { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Prioridade (Priority)", width: 14 }, { label: "Sprint", width: 14 }, { label: "Status", width: 14 },
     ],
     adapter.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, u.prioridade, u.sprint, u.status]),
   );
   buildTable(
     wb, "Casos de Teste", "🧪  CASOS DE TESTE",
     [
-      { label: "ID_CT", width: 14 }, { label: "ID_US", width: 16 }, { label: "Módulo", width: 22 },
-      { label: "Tipo", width: 14 }, { label: "Pré-condições", width: 34 }, { label: "Massa", width: 30 },
-      { label: "Passos", width: 36 }, { label: "Esperado", width: 36 }, { label: "Obtido", width: 30 },
-      { label: "Status", width: 14 }, { label: "Evidência", width: 22 }, { label: "Observações", width: 28 },
+      { label: "ID do Caso de Teste (Test Case ID)", width: 22 }, { label: "ID da História de Usuário (User Story ID)", width: 28 }, { label: "Módulo (Module)", width: 22 },
+      { label: "Tipo de Teste (Test Type)", width: 18 }, { label: "Pré-condições (Pre-conditions)", width: 34 }, { label: "Massa de Dados (Test Data)", width: 30 },
+      { label: "Passos de Execução (Execution Steps)", width: 36 }, { label: "Resultado Esperado (Expected Result)", width: 36 }, { label: "Resultado Obtido (Actual Result)", width: 30 },
+      { label: "Status", width: 14 }, { label: "Evidência (Evidence)", width: 24 }, { label: "Observações (Notes)", width: 28 },
     ],
     adapter.casosTeste.map((c) => [c.id, c.idUs, c.modulo, c.tipo, c.precondicoes, c.massa, c.passos, c.esperado, c.obtido, c.status, c.evidencia, c.observacoes]),
   );
