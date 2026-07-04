@@ -615,13 +615,13 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
                 </Select>
               </Field>
               <Field label="Sprint / Release"><Input value={textValue(r?.sprint)} onChange={(e) => upd({ ...r, sprint: e.target.value })} /></Field>
-              <Field label="Status">
-                <Select value={textValue(r?.status || "Pendente")} onValueChange={(v) => upd({ ...r, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["A Documentar", "Em Desenvolvimento", "Pronto para Teste", "Em Teste", "Aprovado", "Rejeitado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Field label="Status (automático)">
+                <div
+                  className={`inline-flex h-9 w-fit items-center rounded-md border px-3 text-xs font-medium ${usBadgeClass(((textValue(r?.status) || "A Documentar") as DerivedUsStatus))}`}
+                  title="Calculado automaticamente pelos status dos Casos de Teste vinculados"
+                >
+                  {textValue(r?.status) || "A Documentar"}
+                </div>
               </Field>
             </div>
           )
