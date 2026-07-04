@@ -222,8 +222,9 @@ function DashboardPage() {
 
   const createGlobalTagM = useMutation({
     mutationFn: (payload: { name: string; color: string }) => createGlobalTag({ data: payload }),
-    onSuccess: () => {
+    onSuccess: (tag) => {
       toast.success("Tag criada (Tag created)");
+      qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => [...(old ?? []), tag]);
       qc.invalidateQueries({ queryKey: ["global-project-tags"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -231,8 +232,19 @@ function DashboardPage() {
 
   const updateGlobalTagM = useMutation({
     mutationFn: (payload: { id: string; name: string; color: string }) => updateGlobalTag({ data: payload }),
-    onSuccess: () => {
+    onSuccess: (tag) => {
       toast.success("Tag atualizada (Tag updated)");
+      qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => (
+        (old ?? []).map((item) => (item.id === tag.id ? tag : item))
+      ));
+      qc.setQueryData(projectsQueryOptions().queryKey, (old: { owned: MyProjectSummary[]; collaborating: MyProjectSummary[] } | undefined) => {
+        if (!old) return old;
+        const apply = (projects: MyProjectSummary[]) => projects.map((project) => ({
+          ...project,
+          tags: project.tags.map((item) => (item.id === tag.id ? { id: tag.id, name: tag.name, color: tag.color } : item)),
+        }));
+        return { owned: apply(old.owned), collaborating: apply(old.collaborating) };
+      });
       qc.invalidateQueries({ queryKey: ["global-project-tags"] });
       qc.invalidateQueries({ queryKey: ["my-projects"] });
     },
@@ -241,8 +253,19 @@ function DashboardPage() {
 
   const deleteGlobalTagM = useMutation({
     mutationFn: (id: string) => deleteGlobalTag({ data: { id } }),
-    onSuccess: () => {
+    onSuccess: (_res, id) => {
       toast.success("Tag excluída (Tag deleted)");
+      qc.setQueryData(globalTagsQueryOptions().queryKey, (old: GlobalProjectTag[] | undefined) => (
+        (old ?? []).filter((tag) => tag.id !== id)
+      ));
+      qc.setQueryData(projectsQueryOptions().queryKey, (old: { owned: MyProjectSummary[]; collaborating: MyProjectSummary[] } | undefined) => {
+        if (!old) return old;
+        const apply = (projects: MyProjectSummary[]) => projects.map((project) => ({
+          ...project,
+          tags: project.tags.filter((tag) => tag.id !== id),
+        }));
+        return { owned: apply(old.owned), collaborating: apply(old.collaborating) };
+      });
       qc.invalidateQueries({ queryKey: ["global-project-tags"] });
       qc.invalidateQueries({ queryKey: ["my-projects"] });
     },
