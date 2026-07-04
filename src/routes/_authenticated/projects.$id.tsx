@@ -825,8 +825,8 @@ function BugDialog({ open, ct, projectId, onClose, onSave }: {
           <Field label="Comportamento Atual"><Textarea rows={3} value={b.comportamento_atual ?? ""} onChange={(e) => setB({ ...b, comportamento_atual: e.target.value })} /></Field>
           <Field label="Comportamento Esperado"><Textarea rows={3} value={b.comportamento_esperado ?? ""} onChange={(e) => setB({ ...b, comportamento_esperado: e.target.value })} /></Field>
           <Field label="Status">
-            <Select value={b.status as string} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={(b.status as string) ?? "Aberto"} onValueChange={(v) => setB({ ...b, status: v as BugStatus })}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>{(["Aberto", "Em Correção", "Corrigido", "Retestado"] as BugStatus[]).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
