@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -23,7 +24,10 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { createProject, deleteProject, importDraft, updateProjectTags } from "@/lib/tms.functions";
+import {
+  createGlobalProjectTag, createProject, deleteGlobalProjectTag, deleteProject, importDraft,
+  listGlobalProjectTags, updateGlobalProjectTag, updateProjectTags, type GlobalProjectTag,
+} from "@/lib/tms.functions";
 import {
   joinProjectByCode, listMyProjects, listNotifications, markNotificationsRead,
   type MyProjectSummary, type NotificationRow, type ProjectTag,
@@ -57,6 +61,13 @@ const notificationsQueryOptions = () => ({
   queryFn: () => listNotifications(),
   staleTime: 60_000,
   refetchInterval: 60_000,
+});
+
+const globalTagsQueryOptions = () => ({
+  queryKey: ["global-project-tags"] as const,
+  queryFn: () => listGlobalProjectTags(),
+  staleTime: 5 * 60_000,
+  gcTime: 15 * 60_000,
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
