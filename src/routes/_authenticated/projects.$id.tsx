@@ -449,7 +449,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
               <SelectContent>{["Alto", "Médio", "Baixo"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
             <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
-            <Textarea placeholder="Mitigação" rows={2} value={textValue(r?.mitigacao)} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
+            <Textarea placeholder="Mitigação (Mitigation)" rows={2} value={textValue(r?.mitigacao)} onChange={(e) => upd({ ...r, mitigacao: e.target.value })} className="md:col-span-6" />
           </div>
         )}
       />
