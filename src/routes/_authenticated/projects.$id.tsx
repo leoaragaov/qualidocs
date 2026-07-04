@@ -1139,15 +1139,35 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
           </thead>
           <tbody>
             {safeStories.map((us) => {
-              const cover = safeCases.map((ct) => (ct?.id_us ?? "").split(/[,;\s]+/).includes(us?.us_id ?? ""));
-              const total = cover.filter(Boolean).length;
-              const pct = safeCases.length ? Math.round((total / safeCases.length) * 100) : 0;
+              const linked = safeCases.map((ct) =>
+                (ct?.id_us ?? "").split(/[,;\s]+/).includes(us?.us_id ?? ""),
+              );
+              const linkedCases = safeCases.filter((_, i) => linked[i]);
+              const linkedTotal = linkedCases.length;
+              const passed = linkedCases.filter((c) => c?.status === "Passou").length;
+              const pct = linkedTotal ? Math.round((passed / linkedTotal) * 100) : 0;
+              const pctClass =
+                linkedTotal === 0
+                  ? "text-muted-foreground"
+                  : pct === 100
+                    ? "text-green-600"
+                    : pct > 0
+                      ? "text-amber-600"
+                      : "text-red-600";
               return (
                 <tr key={us.id}>
                   <td className="border p-2 font-medium">{us?.us_id || "—"}</td>
                   <td className="border p-2">{us?.modulo || "—"}</td>
-                  {cover.map((b, j) => <td key={j} className="border p-2 text-center">{b ? "✅" : "🔲"}</td>)}
-                  <td className={`border p-2 text-center font-semibold ${total ? "text-green-600" : "text-red-600"}`}>{pct}%</td>
+                  {safeCases.map((ct, j) => {
+                    if (!linked[j]) return <td key={ct?.id ?? j} className="border p-2 text-center">🔲</td>;
+                    const s = ct?.status;
+                    const icon = s === "Passou" ? "✅" : s === "Falhou" ? "❌" : s === "Bloqueado" ? "⛔" : "🔲";
+                    return <td key={ct?.id ?? j} className="border p-2 text-center">{icon}</td>;
+                  })}
+                  <td className={`border p-2 text-center font-semibold ${pctClass}`}>
+                    {linkedTotal ? `${pct}%` : "—"}
+                    {linkedTotal ? <div className="text-xs font-normal text-muted-foreground">{passed}/{linkedTotal}</div> : null}
+                  </td>
                 </tr>
               );
             })}
