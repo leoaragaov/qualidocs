@@ -116,10 +116,18 @@ function ProjectPage() {
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [tab, setTab] = useState<Tab>("plano");
+  const [backupOpen, setBackupOpen] = useState(false);
 
   const { data, isPending, error } = useQuery(projectDetailQueryOptions(id));
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["project", id] });
+
+  // ---------- Auto-save snapshot to localStorage on every data change ----------
+  useEffect(() => {
+    if (!data?.project) return;
+    saveLocalSnapshot(id, data as any);
+  }, [id, data]);
+
 
   // ---------- Reactive derived statuses (US + Cronograma) ----------
   const rawSchedule = useMemo(
