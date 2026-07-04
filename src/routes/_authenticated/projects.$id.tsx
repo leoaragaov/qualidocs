@@ -539,7 +539,7 @@ function RowEditor<T extends { id?: string }>({ title, rows, newRow, onSave, onD
                       if (savingIds[r.id!]) return;
                       setSavingIds((s) => ({ ...s, [r.id!]: true }));
                       try {
-                        await onSave(draft);
+                        await onSave(sanitizeDeep(draft));
                         setDrafts((d) => { const nd = { ...d }; delete nd[r.id!]; return nd; });
                         toast.success("Salvo");
                       } catch (e: any) {
