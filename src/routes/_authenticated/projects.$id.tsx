@@ -399,8 +399,8 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         <CardContent className="grid gap-4">
           <Field label="Objetivo Geral"><Textarea rows={3} value={p?.objetivo ?? ""} onChange={(e) => setP({ ...p, objetivo: e.target.value })} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="IN SCOPE (uma linha por item)"><Textarea rows={5} value={p?.in_scope ?? ""} onChange={(e) => setP({ ...p, in_scope: e.target.value })} /></Field>
-            <Field label="OUT OF SCOPE (uma linha por item)"><Textarea rows={5} value={p?.out_of_scope ?? ""} onChange={(e) => setP({ ...p, out_of_scope: e.target.value })} /></Field>
+            <Field label="No Escopo (In Scope) — uma linha por item"><Textarea rows={5} value={p?.in_scope ?? ""} onChange={(e) => setP({ ...p, in_scope: e.target.value })} /></Field>
+            <Field label="Fora de Escopo (Out of Scope) — uma linha por item"><Textarea rows={5} value={p?.out_of_scope ?? ""} onChange={(e) => setP({ ...p, out_of_scope: e.target.value })} /></Field>
           </div>
         </CardContent>
       </Card>
