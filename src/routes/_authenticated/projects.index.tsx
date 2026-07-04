@@ -384,30 +384,66 @@ function DashboardPage() {
       </main>
 
       {/* Novo projeto */}
-      <Dialog open={newProjOpen} onOpenChange={setNewProjOpen}>
+      <Dialog open={newProjOpen} onOpenChange={(o) => { setNewProjOpen(o); if (!o) { setNome(""); setNewTags([]); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Novo projeto</DialogTitle>
-            <DialogDescription>Dê um nome ao seu projeto. Você poderá configurar tudo mais depois.</DialogDescription>
+            <DialogTitle>Novo projeto (New Project)</DialogTitle>
+            <DialogDescription>Dê um nome ao seu projeto e adicione tags. Você poderá configurar tudo mais depois.</DialogDescription>
           </DialogHeader>
-          <div className="py-2 space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Nome do projeto</Label>
-            <Input
-              autoFocus
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex.: Plataforma QualiDocs — Onboarding"
-              onKeyDown={(e) => { if (e.key === "Enter" && nome.trim()) createM.mutate(nome.trim()); }}
-            />
+          <div className="py-2 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome do projeto (Project Name)</Label>
+              <Input
+                autoFocus
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex.: Plataforma QualiDocs — Onboarding"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Tags do Projeto (Project Tags)</Label>
+              <TagEditor value={newTags} onChange={setNewTags} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar</Button>
-            <Button onClick={() => nome.trim() && createM.mutate(nome.trim())} disabled={createM.isPending || !nome.trim()}>
-              <Plus className="mr-2 h-4 w-4" /> Criar
+            <Button variant="ghost" onClick={() => setNewProjOpen(false)}>Cancelar (Cancel)</Button>
+            <Button
+              onClick={() => nome.trim() && createM.mutate({ name: nome.trim(), tags: newTags })}
+              disabled={createM.isPending || !nome.trim()}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Criar (Create)
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Editar Tags */}
+      <Dialog open={!!tagsEdit} onOpenChange={(o) => !o && setTagsEdit(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Tag className="h-4 w-4" /> Tags do Projeto (Project Tags)</DialogTitle>
+            <DialogDescription>{tagsEdit?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            {tagsEdit && (
+              <TagEditor
+                value={tagsEdit.tags}
+                onChange={(tags) => setTagsEdit((prev) => (prev ? { ...prev, tags } : prev))}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTagsEdit(null)}>Cancelar (Cancel)</Button>
+            <Button
+              onClick={() => tagsEdit && tagsM.mutate({ id: tagsEdit.id, tags: tagsEdit.tags })}
+              disabled={tagsM.isPending}
+            >
+              <Check className="mr-2 h-4 w-4" /> Salvar (Save)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Join code */}
       <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) setJoinCode(""); }}>
