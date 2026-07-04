@@ -864,20 +864,20 @@ function ExecutionTab({ projectId, rows, onChange }: { projectId: string; rows: 
           {selected && (
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3 rounded-md border bg-muted/30 p-3 text-sm">
-                <div><span className="text-xs text-muted-foreground">User Story</span><p className="font-mono">{selected.id_us || "—"}</p></div>
-                <div><span className="text-xs text-muted-foreground">Módulo</span><p>{selected.modulo || "—"}</p></div>
-                <div><span className="text-xs text-muted-foreground">Tipo</span><p>{selected.tipo || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">História de Usuário (User Story)</span><p className="font-mono">{selected.id_us || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">Módulo (Module)</span><p>{selected.modulo || "—"}</p></div>
+                <div><span className="text-xs text-muted-foreground">Tipo de Teste (Test Type)</span><p>{selected.tipo || "—"}</p></div>
               </div>
-              <ReadOnlyBlock label="Pré-condições" value={selected.precondicoes} />
-              <ReadOnlyBlock label="Massa de Dados" value={selected.massa} />
-              <ReadOnlyBlock label="Passo a Passo" value={selected.passos} />
-              <ReadOnlyBlock label="Resultado Esperado" value={selected.esperado} />
+              <ReadOnlyBlock label="Pré-condições (Pre-conditions)" value={selected.precondicoes} />
+              <ReadOnlyBlock label="Massa de Dados (Test Data)" value={selected.massa} />
+              <ReadOnlyBlock label="Passos de Execução (Execution Steps)" value={selected.passos} />
+              <ReadOnlyBlock label="Resultado Esperado (Expected Result)" value={selected.esperado} />
 
               <div className="border-t pt-4 space-y-3">
-                <Field label="Resultado Obtido">
+                <Field label="Resultado Obtido (Actual Result)">
                   <Textarea rows={3} value={obtido} onChange={(e) => setObtido(e.target.value)} placeholder="Descreva o que aconteceu na execução..." />
                 </Field>
-                <Field label="Evidência (link/arquivo)">
+                <Field label="Evidência (Evidence) — link/arquivo">
                   <Input value={evidencia} onChange={(e) => setEvidencia(e.target.value)} placeholder="URL do print, vídeo, log..." />
                 </Field>
               </div>
