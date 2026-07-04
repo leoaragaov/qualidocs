@@ -59,7 +59,7 @@ const notificationsQueryOptions = () => ({
 });
 
 export const Route = createFileRoute("/_authenticated/projects/")({
-  head: () => ({ meta: [{ title: "Meus Projetos · QualiDocs" }] }),
+  head: () => ({ meta: [{ title: "QualiDocs · Meus Projetos (My Projects)" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
   component: DashboardPage,
   pendingComponent: ProjectsLoading,
