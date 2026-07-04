@@ -1,7 +1,11 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  deriveUsStatus, deriveScheduleStatus, usBadgeClass, scheduleBadgeClass,
+  type DerivedUsStatus,
+} from "@/lib/status-derivation";
 import { toast, Toaster } from "sonner";
 import {
   ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
@@ -115,6 +119,74 @@ function ProjectPage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["project", id] });
 
+  // ---------- Reactive derived statuses (US + Cronograma) ----------
+  const rawSchedule = useMemo(
+    () => (Array.isArray(data?.schedule) ? data!.schedule.filter(Boolean) : []),
+    [data?.schedule],
+  );
+  const rawUS = useMemo(
+    () => (Array.isArray(data?.userStories) ? data!.userStories.filter(Boolean) : []),
+    [data?.userStories],
+  );
+  const rawCT = useMemo(
+    () => (Array.isArray(data?.testCases) ? data!.testCases.filter(Boolean) : []),
+    [data?.testCases],
+  );
+  const rawBugs = useMemo(
+    () => (Array.isArray(data?.bugs) ? data!.bugs.filter(Boolean) : []),
+    [data?.bugs],
+  );
+
+  const derivedUS = useMemo(
+    () => rawUS.map((u) => ({ ...u, status: deriveUsStatus(u, rawCT) })),
+    [rawUS, rawCT],
+  );
+  const derivedSchedule = useMemo(
+    () =>
+      rawSchedule.map((r) => {
+        const s = deriveScheduleStatus(r, rawCT, rawBugs);
+        return s ? { ...r, status: s } : r;
+      }),
+    [rawSchedule, rawCT, rawBugs],
+  );
+
+  const upUS = useServerFn(upsertUserStory);
+  const upSched = useServerFn(upsertSchedule);
+  const syncingRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!data?.project) return;
+    const tasks: Promise<unknown>[] = [];
+    rawUS.forEach((cur, i) => {
+      const target = derivedUS[i]?.status;
+      if (!cur?.id || !target || cur.status === target) return;
+      const key = `us:${cur.id}:${target}`;
+      if (syncingRef.current.has(key)) return;
+      syncingRef.current.add(key);
+      tasks.push(
+        upUS({ data: { ...cur, status: target } as any }).finally(() =>
+          syncingRef.current.delete(key),
+        ),
+      );
+    });
+    rawSchedule.forEach((cur, i) => {
+      const target = derivedSchedule[i]?.status;
+      if (!cur?.id || !target || cur.status === target) return;
+      const key = `sc:${cur.id}:${target}`;
+      if (syncingRef.current.has(key)) return;
+      syncingRef.current.add(key);
+      tasks.push(
+        upSched({ data: { ...cur, status: target } as any }).finally(() =>
+          syncingRef.current.delete(key),
+        ),
+      );
+    });
+    if (tasks.length) {
+      Promise.allSettled(tasks).then(() => {
+        qc.invalidateQueries({ queryKey: ["project", id] });
+      });
+    }
+  }, [data?.project, rawUS, rawSchedule, derivedUS, derivedSchedule, upUS, upSched, qc, id]);
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -156,11 +228,11 @@ function ProjectPage() {
   if (error || !data?.project) return <RequestAccessScreen projectId={id} onSignOut={signOut} />;
 
   const project = data.project;
-  const schedule = Array.isArray(data.schedule) ? data.schedule.filter(Boolean) : [];
+  const schedule = derivedSchedule;
   const risks = Array.isArray(data.risks) ? data.risks.filter(Boolean) : [];
-  const userStories = Array.isArray(data.userStories) ? data.userStories.filter(Boolean) : [];
-  const testCases = Array.isArray(data.testCases) ? data.testCases.filter(Boolean) : [];
-  const bugs = Array.isArray(data.bugs) ? data.bugs.filter(Boolean) : [];
+  const userStories = derivedUS;
+  const testCases = rawCT;
+  const bugs = rawBugs;
   const code = project?.codigo_acesso || "";
   async function copyCode() {
     if (!code) return;
@@ -338,12 +410,20 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         onSave={async (r) => { await upSched({ data: r as any }); onChange(); }}
         onDelete={async (rid) => { await del({ data: { table: "schedule_items", id: rid } }); onChange(); }}
         render={(r, upd) => (
-          <div className="grid gap-2 md:grid-cols-6">
+          <div className="grid gap-2 md:grid-cols-6 items-start">
             <Input placeholder="Fase" value={textValue(r?.fase)} onChange={(e) => upd({ ...r, fase: e.target.value })} />
             <Input placeholder="Atividade" value={textValue(r?.atividade)} onChange={(e) => upd({ ...r, atividade: e.target.value })} className="md:col-span-2" />
             <Input type="date" value={r.inicio ?? ""} onChange={(e) => upd({ ...r, inicio: e.target.value || null })} />
             <Input type="date" value={r.fim ?? ""} onChange={(e) => upd({ ...r, fim: e.target.value || null })} />
-            <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+            <div className="flex flex-col gap-1">
+              <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+              <span
+                className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${scheduleBadgeClass(textValue(r?.status) || "A Fazer")}`}
+                title="Status automático baseado na execução dos testes"
+              >
+                {textValue(r?.status) || "A Fazer"}
+              </span>
+            </div>
           </div>
         )}
       />
@@ -535,13 +615,13 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
                 </Select>
               </Field>
               <Field label="Sprint / Release"><Input value={textValue(r?.sprint)} onChange={(e) => upd({ ...r, sprint: e.target.value })} /></Field>
-              <Field label="Status">
-                <Select value={textValue(r?.status || "Pendente")} onValueChange={(v) => upd({ ...r, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["A Documentar", "Em Desenvolvimento", "Pronto para Teste", "Em Teste", "Aprovado", "Rejeitado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Field label="Status (automático)">
+                <div
+                  className={`inline-flex h-9 w-fit items-center rounded-md border px-3 text-xs font-medium ${usBadgeClass(((textValue(r?.status) || "A Documentar") as DerivedUsStatus))}`}
+                  title="Calculado automaticamente pelos status dos Casos de Teste vinculados"
+                >
+                  {textValue(r?.status) || "A Documentar"}
+                </div>
               </Field>
             </div>
           )
