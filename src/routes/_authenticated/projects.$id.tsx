@@ -9,8 +9,10 @@ import {
 import { toast, Toaster } from "sonner";
 import {
   ArrowLeft, Download, Plus, Trash2, Save, FileSpreadsheet, FileText, Bug as BugIcon, History, LogOut,
-  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock, Settings,
+  CheckCircle2, XCircle, ShieldAlert, Circle, Users, Copy, Send, RefreshCw, Crown, Clock, Settings, ShieldCheck,
 } from "lucide-react";
+import { BackupDialog } from "@/components/BackupDialog";
+import { saveLocalSnapshot, sanitizeDeep, looksLikePlainCredential } from "@/lib/backup";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
