@@ -395,9 +395,9 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Objetivo & Escopo</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Objetivo & Escopo (Objective & Scope)</CardTitle></CardHeader>
         <CardContent className="grid gap-4">
-          <Field label="Objetivo Geral"><Textarea rows={3} value={p?.objetivo ?? ""} onChange={(e) => setP({ ...p, objetivo: e.target.value })} /></Field>
+          <Field label="Objetivo Geral (General Objective)"><Textarea rows={3} value={p?.objetivo ?? ""} onChange={(e) => setP({ ...p, objetivo: e.target.value })} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="No Escopo (In Scope) — uma linha por item"><Textarea rows={5} value={p?.in_scope ?? ""} onChange={(e) => setP({ ...p, in_scope: e.target.value })} /></Field>
             <Field label="Fora de Escopo (Out of Scope) — uma linha por item"><Textarea rows={5} value={p?.out_of_scope ?? ""} onChange={(e) => setP({ ...p, out_of_scope: e.target.value })} /></Field>
@@ -406,7 +406,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       </Card>
 
       <RowEditor
-        title="Cronograma"
+        title="Cronograma (Schedule)"
         rows={schedule}
         newRow={() => ({ id: crypto.randomUUID(), project_id: p?.id ?? "", ordem: (schedule?.length ?? 0), fase: "", atividade: "", inicio: null, fim: null, responsavel: "", status: "A Fazer" }) as TmsSchedule}
         onSave={async (r) => { await upSched({ data: r as any }); onChange(); }}
