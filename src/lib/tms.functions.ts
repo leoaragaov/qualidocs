@@ -30,12 +30,15 @@ export const createProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ projeto: z.string().min(1).max(200) }).parse(d))
   .handler(async ({ data, context }) => {
+    // Usa RPC SECURITY DEFINER: preenche owner_id com auth.uid() no servidor,
+    // evitando qualquer divergência com a política de RLS (owner_id = auth.uid()).
     const { data: row, error } = await context.supabase
-      .from("projects")
-      .insert({ owner_id: context.userId, projeto: data.projeto })
-      .select("*")
+      .rpc("tms_create_project", { _projeto: data.projeto })
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[QualiDocs] createProject:", error);
+      throw new Error(error.message);
+    }
     return row as TmsProjectRow;
   });
 
