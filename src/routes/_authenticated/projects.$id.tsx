@@ -410,12 +410,20 @@ function PlanoTab({ project, schedule, risks, onChange }: {
         onSave={async (r) => { await upSched({ data: r as any }); onChange(); }}
         onDelete={async (rid) => { await del({ data: { table: "schedule_items", id: rid } }); onChange(); }}
         render={(r, upd) => (
-          <div className="grid gap-2 md:grid-cols-6">
+          <div className="grid gap-2 md:grid-cols-6 items-start">
             <Input placeholder="Fase" value={textValue(r?.fase)} onChange={(e) => upd({ ...r, fase: e.target.value })} />
             <Input placeholder="Atividade" value={textValue(r?.atividade)} onChange={(e) => upd({ ...r, atividade: e.target.value })} className="md:col-span-2" />
             <Input type="date" value={r.inicio ?? ""} onChange={(e) => upd({ ...r, inicio: e.target.value || null })} />
             <Input type="date" value={r.fim ?? ""} onChange={(e) => upd({ ...r, fim: e.target.value || null })} />
-            <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+            <div className="flex flex-col gap-1">
+              <Input placeholder="Responsável" value={textValue(r?.responsavel)} onChange={(e) => upd({ ...r, responsavel: e.target.value })} />
+              <span
+                className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${scheduleBadgeClass(textValue(r?.status) || "A Fazer")}`}
+                title="Status automático baseado na execução dos testes"
+              >
+                {textValue(r?.status) || "A Fazer"}
+              </span>
+            </div>
           </div>
         )}
       />
