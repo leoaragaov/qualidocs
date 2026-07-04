@@ -101,9 +101,22 @@ function AuthPage() {
         email, password,
         options: { emailRedirectTo: `${window.location.origin}/projects` },
       });
-      if (error) toast.error(error.message);
-      else toast.success("Conta criada! Verifique seu e-mail se solicitado.");
+      if (error) {
+        const msg = error.message || "";
+        if (/weak|pwned|known to be/i.test(msg)) {
+          toast.error("Essa senha é muito comum. Escolha uma senha mais forte (mistura letras, números e símbolos).");
+        } else if (/already registered|already exists|user.*exists/i.test(msg)) {
+          toast.error("Este e-mail já está cadastrado. Faça login ou recupere sua senha.");
+        } else if (/invalid.*email/i.test(msg)) {
+          toast.error("E-mail inválido. Verifique e tente novamente.");
+        } else {
+          toast.error(msg);
+        }
+      } else {
+        toast.success("Conta criada! Verifique seu e-mail se solicitado.");
+      }
     });
+
 
   const googleIn = () =>
     withLoading(async () => {
