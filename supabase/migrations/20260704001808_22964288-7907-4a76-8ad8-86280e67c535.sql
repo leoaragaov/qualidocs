@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.tms_project_role(uuid, uuid) FROM PUBLIC, anon, authenticated;

@@ -99,8 +99,17 @@ export const inviteMember = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // Auth: user must be manager
-    const { data: mgr } = await context.supabase.rpc("tms_can_manage", { _pid: data.project_id });
-    if (!mgr) throw new Error("Sem permissão para convidar membros.");
+    const { data: myMember, error: memberErr } = await context.supabase
+      .from("project_members")
+      .select("role")
+      .eq("project_id", data.project_id)
+      .eq("user_id", context.userId)
+      .eq("status", "accepted")
+      .maybeSingle();
+    if (memberErr) throw new Error(memberErr.message);
+    if (myMember?.role !== "owner" && myMember?.role !== "admin") {
+      throw new Error("Sem permissão para convidar membros.");
+    }
 
     const email = data.email.trim().toLowerCase();
 
@@ -261,11 +270,14 @@ export const joinProjectByCode = createServerFn({ method: "POST" })
     const { data: pid, error } = await context.supabase.rpc("tms_join_by_code", { _code: data.code });
     if (error) throw new Error(error.message);
     if (!pid) throw new Error("Código inválido");
-    const { data: role } = await context.supabase.rpc("tms_project_role", {
-      _pid: pid as string,
-      _uid: context.userId,
-    });
-    return { project_id: pid as string, already_member: role != null };
+    const { data: member } = await context.supabase
+      .from("project_members")
+      .select("role")
+      .eq("project_id", pid as string)
+      .eq("user_id", context.userId)
+      .eq("status", "accepted")
+      .maybeSingle();
+    return { project_id: pid as string, already_member: member?.role != null };
   });
 
 // ---------- request access directly by project id ----------
