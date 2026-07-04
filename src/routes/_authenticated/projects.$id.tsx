@@ -520,7 +520,7 @@ function TestCasesTab({ projectId, rows, onChange }: { projectId: string; rows: 
       <RowEditor
         title=""
         rows={safeRows}
-        newRow={() => ({ project_id: projectId, ct_id: "", id_us: "", modulo: "", tipo: "Funcional", precondicoes: "", massa: "", passos: "", esperado: "", obtido: "", status: "Pendente", evidencia: "", observacoes: "" }) as TmsTestCase}
+        newRow={() => ({ id: crypto.randomUUID(), project_id: projectId, ct_id: "", id_us: "", modulo: "", tipo: "Funcional", precondicoes: "", massa: "", passos: "", esperado: "", obtido: "", status: "Pendente", evidencia: "", observacoes: "" }) as TmsTestCase}
         onSave={async (r) => { await up({ data: r as any }); onChange(); }}
         onDelete={async (id) => { await del({ data: { table: "test_cases", id } }); onChange(); }}
         render={(r, upd) => (
