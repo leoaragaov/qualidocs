@@ -1206,7 +1206,7 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Matriz de Rastreabilidade</CardTitle>
+        <CardTitle>Matriz de Rastreabilidade (Traceability Matrix)</CardTitle>
         <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID da História de Usuário (User Story ID) dos casos de teste.</p>
       </CardHeader>
       <CardContent className="overflow-x-auto">
