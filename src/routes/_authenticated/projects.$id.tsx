@@ -1207,16 +1207,16 @@ function MatrizTab({ userStories, testCases }: { userStories: TmsUserStory[]; te
     <Card>
       <CardHeader>
         <CardTitle>Matriz de Rastreabilidade</CardTitle>
-        <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID_US dos casos de teste.</p>
+        <p className="text-sm text-muted-foreground">Gerada automaticamente a partir do campo ID da História de Usuário (User Story ID) dos casos de teste.</p>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-muted">
-              <th className="border p-2 text-left">ID_US</th>
-              <th className="border p-2 text-left">Módulo</th>
+              <th className="border p-2 text-left">ID da História de Usuário (User Story ID)</th>
+              <th className="border p-2 text-left">Módulo (Module)</th>
               {safeCases.map((c, i) => <th key={c?.id ?? `ct-${i}`} className="border p-2 text-center">{c?.ct_id || "?"}</th>)}
-              <th className="border p-2 text-center">Cobertura</th>
+              <th className="border p-2 text-center">Cobertura (Coverage %)</th>
             </tr>
           </thead>
           <tbody>
