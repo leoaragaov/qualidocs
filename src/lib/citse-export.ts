@@ -338,14 +338,14 @@ function buildBugsSheet(wb: ExcelJS.Workbook, d: TmsProjectDetail) {
   buildTable(
     wb, "Relatório de Bugs", "🐞  RELATÓRIO DE BUGS",
     [
-      { label: "ID_Bug", width: 14 },
-      { label: "CT Relacionado", width: 16 },
-      { label: "Título", width: 34 },
-      { label: "Severidade", width: 12 },
-      { label: "Comportamento Atual", width: 36 },
-      { label: "Comportamento Esperado", width: 36 },
+      { label: "ID do Bug (Bug ID)", width: 18 },
+      { label: "Caso de Teste Relacionado (Related Test Case)", width: 28 },
+      { label: "Título do Bug (Bug Title)", width: 34 },
+      { label: "Severidade (Severity)", width: 16 },
+      { label: "Comportamento Atual (Actual Behavior)", width: 36 },
+      { label: "Comportamento Esperado (Expected Behavior)", width: 36 },
       { label: "Status", width: 16 },
-      { label: "Registrado em", width: 18 },
+      { label: "Data de Registro (Logged Date)", width: 22 },
     ],
     d.bugs.map((b) => [
       b.bug_id, b.test_case_id ? (ctMap[b.test_case_id] ?? "") : "",
