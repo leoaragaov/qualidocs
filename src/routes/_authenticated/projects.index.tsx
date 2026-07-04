@@ -785,36 +785,6 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (color: str
     </div>
   );
 }
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-2">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-          placeholder="Nome da tag (Tag name)"
-          className="h-9 flex-1"
-          maxLength={40}
-        />
-        <Button type="button" size="sm" variant="secondary" onClick={addTag} disabled={!name.trim()}>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {TAG_COLORS.map((c) => (
-          <button
-            key={c.name}
-            type="button"
-            title={c.label}
-            onClick={() => setColor(c.name)}
-            className={`h-6 w-6 rounded-full ${c.dot} ring-2 ring-offset-1 transition ${color === c.name ? "ring-slate-800" : "ring-transparent"}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function OwnerCard({ p, onDelete, onEditTags }: { p: MyProjectSummary; onDelete: (id: string) => void; onEditTags: () => void }) {
   const id = p?.id ?? "";
