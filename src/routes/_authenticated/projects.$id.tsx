@@ -1008,7 +1008,7 @@ function BugsTab({ projectId, rows, testCases, onChange }: {
                 <span className="font-mono text-xs text-muted-foreground">{b?.bug_id || "(sem ID)"}</span>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sevColor[b?.severidade as BugSeverity] ?? "bg-slate-100 text-slate-700"}`}>{b?.severidade || "—"}</span>
                 <Badge variant={b.status === "Corrigido" || b.status === "Retestado" ? "secondary" : "default"}>{b?.status || "—"}</Badge>
-                {b.test_case_id && <span className="text-xs text-muted-foreground">CT: {ctMap[b.test_case_id] ?? "—"}</span>}
+                {b.test_case_id && <span className="text-xs text-muted-foreground">Caso de Teste Relacionado (Related Test Case): {ctMap[b.test_case_id] ?? "—"}</span>}
               </div>
               <p className="mt-1 text-sm font-medium">{b?.titulo || "(sem título)"}</p>
               <p className="text-xs text-muted-foreground line-clamp-1">{b?.comportamento_atual || ""}</p>
