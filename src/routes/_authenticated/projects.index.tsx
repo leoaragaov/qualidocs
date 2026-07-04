@@ -5,8 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
   Plus, Trash2, FileSpreadsheet, Upload, LogOut, ArrowRight, KeyRound,
-  Search, Users, Crown, Clock, Bell, Check, CheckCheck, Settings,
+  Search, Users, Crown, Clock, Bell, Check, CheckCheck, Settings, Tag, X, Pencil,
 } from "lucide-react";
+
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
