@@ -142,11 +142,13 @@ function ProjectPage() {
     [rawUS, rawCT],
   );
   const derivedSchedule = useMemo(
-    () =>
-      rawSchedule.map((r) => {
-        const s = deriveScheduleStatus(r, rawCT, rawBugs);
+    () => {
+      const statuses = deriveScheduleStatuses(rawSchedule, rawCT, rawBugs);
+      return rawSchedule.map((r, i) => {
+        const s = statuses[i];
         return s ? { ...r, status: s } : r;
-      }),
+      });
+    },
     [rawSchedule, rawCT, rawBugs],
   );
 
