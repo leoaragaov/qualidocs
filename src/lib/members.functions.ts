@@ -493,6 +493,8 @@ export const markNotificationsRead = createServerFn({ method: "POST" })
   });
 
 // ---------- list projects grouped by role ----------
+export type ProjectTag = { name: string; color: string };
+
 export type MyProjectSummary = {
   id: string;
   projeto: string;
@@ -504,6 +506,7 @@ export type MyProjectSummary = {
   my_role: ProjectRole;
   member_count: number;
   pending_requests: number;
+  tags: ProjectTag[];
 };
 
 export const listMyProjects = createServerFn({ method: "GET" })
@@ -512,7 +515,7 @@ export const listMyProjects = createServerFn({ method: "GET" })
     async ({ context }): Promise<{ owned: MyProjectSummary[]; collaborating: MyProjectSummary[] }> => {
       const { data: projects, error } = await context.supabase
         .from("projects")
-        .select("id,projeto,objetivo,updated_at,codigo_acesso,owner_id")
+        .select("id,projeto,objetivo,updated_at,codigo_acesso,owner_id,tags")
         .order("updated_at", { ascending: false });
       if (error) throw new Error(error.message);
       const list = (projects ?? []) as any[];
@@ -558,6 +561,10 @@ export const listMyProjects = createServerFn({ method: "GET" })
       for (const p of list) {
         const role = myRole[p.id];
         if (!role) continue;
+        const rawTags = Array.isArray(p.tags) ? p.tags : [];
+        const tags: ProjectTag[] = rawTags
+          .filter((t: any) => t && typeof t.name === "string" && typeof t.color === "string")
+          .map((t: any) => ({ name: t.name, color: t.color }));
         const summary: MyProjectSummary = {
           id: p.id,
           projeto: p.projeto ?? "",
@@ -569,6 +576,7 @@ export const listMyProjects = createServerFn({ method: "GET" })
           my_role: role,
           member_count: memberCount[p.id] ?? 0,
           pending_requests: pending[p.id] ?? 0,
+          tags,
         };
         if (role === "owner") owned.push(summary);
         else collaborating.push(summary);
@@ -576,3 +584,4 @@ export const listMyProjects = createServerFn({ method: "GET" })
       return { owned, collaborating };
     },
   );
+
