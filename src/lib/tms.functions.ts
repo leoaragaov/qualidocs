@@ -27,15 +27,119 @@ export const listProjects = createServerFn({ method: "GET" })
   });
 
 const tagSchema = z.object({
+  id: z.string().uuid().optional(),
   name: z.string().min(1).max(40),
   color: z.string().min(1).max(40),
 });
+
+const tagIdListSchema = z.array(z.string().uuid()).max(50).default([]);
+
+export type GlobalProjectTag = {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const listGlobalProjectTags = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<GlobalProjectTag[]> => {
+    const { data, error } = await context.supabase
+      .from("project_tags")
+      .select("id,name,color,created_at,updated_at")
+      .eq("owner_id", context.userId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as GlobalProjectTag[];
+  });
+
+export const createGlobalProjectTag = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => tagSchema.omit({ id: true }).parse(d))
+  .handler(async ({ data, context }): Promise<GlobalProjectTag> => {
+    const { data: row, error } = await context.supabase
+      .from("project_tags")
+      .insert({ owner_id: context.userId, name: data.name.trim(), color: data.color })
+      .select("id,name,color,created_at,updated_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return row as GlobalProjectTag;
+  });
+
+export const updateGlobalProjectTag = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => tagSchema.required({ id: true }).parse(d))
+  .handler(async ({ data, context }): Promise<GlobalProjectTag> => {
+    const { data: row, error } = await context.supabase
+      .from("project_tags")
+      .update({ name: data.name.trim(), color: data.color })
+      .eq("id", data.id)
+      .eq("owner_id", context.userId)
+      .select("id,name,color,created_at,updated_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return row as GlobalProjectTag;
+  });
+
+export const deleteGlobalProjectTag = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("project_tags")
+      .delete()
+      .eq("id", data.id)
+      .eq("owner_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+async function replaceProjectTagLinks(
+  supabase: any,
+  userId: string,
+  projectId: string,
+  tagIds: string[],
+): Promise<GlobalProjectTag[]> {
+  const uniqueIds = Array.from(new Set(tagIds));
+
+  let selectedTags: GlobalProjectTag[] = [];
+  if (uniqueIds.length) {
+    const { data: tags, error: tagsError } = await supabase
+      .from("project_tags")
+      .select("id,name,color,created_at,updated_at")
+      .eq("owner_id", userId)
+      .in("id", uniqueIds);
+    if (tagsError) throw new Error(tagsError.message);
+    selectedTags = (tags ?? []) as GlobalProjectTag[];
+    if (selectedTags.length !== uniqueIds.length) {
+      throw new Error("Tag global inválida ou indisponível (Invalid or unavailable global tag)");
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("project_tag_links")
+    .delete()
+    .eq("project_id", projectId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (uniqueIds.length) {
+    const { error: insertError } = await supabase.from("project_tag_links").insert(
+      uniqueIds.map((tagId) => ({ project_id: projectId, tag_id: tagId })),
+    );
+    if (insertError) throw new Error(insertError.message);
+  }
+
+  const selectedById = new Map(selectedTags.map((tag) => [tag.id, tag]));
+  return uniqueIds.map((id) => selectedById.get(id)).filter(Boolean) as GlobalProjectTag[];
+}
 
 export const createProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
       projeto: z.string().min(1).max(200),
+      tagIds: tagIdListSchema.optional(),
       tags: z.array(tagSchema).max(20).optional(),
     }).parse(d),
   )
@@ -48,12 +152,8 @@ export const createProject = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
     const created = row as TmsProjectRow & { id: string };
-    if (data.tags && data.tags.length) {
-      const { error: tErr } = await context.supabase
-        .from("projects")
-        .update({ tags: data.tags })
-        .eq("id", created.id);
-      if (tErr) console.error("[QualiDocs] createProject tags:", tErr);
+    if (data.tagIds && data.tagIds.length) {
+      await replaceProjectTagLinks(context.supabase, context.userId, created.id, data.tagIds);
     }
     return created as TmsProjectRow;
   });
@@ -63,16 +163,13 @@ export const updateProjectTags = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({
       id: z.string().uuid(),
-      tags: z.array(tagSchema).max(20),
+      tagIds: tagIdListSchema,
+      tags: z.array(tagSchema).max(20).optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("projects")
-      .update({ tags: data.tags })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
+    const tags = await replaceProjectTagLinks(context.supabase, context.userId, data.id, data.tagIds);
+    return { ok: true, tags };
   });
 
 
