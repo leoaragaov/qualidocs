@@ -334,7 +334,7 @@ function PlanoTab({ project, schedule, risks, onChange }: {
       <RowEditor
         title="Cronograma"
         rows={schedule}
-        newRow={() => ({ project_id: p?.id ?? "", ordem: (schedule?.length ?? 0), fase: "", atividade: "", inicio: null, fim: null, responsavel: "", status: "A Fazer" }) as TmsSchedule}
+        newRow={() => ({ id: crypto.randomUUID(), project_id: p?.id ?? "", ordem: (schedule?.length ?? 0), fase: "", atividade: "", inicio: null, fim: null, responsavel: "", status: "A Fazer" }) as TmsSchedule}
         onSave={async (r) => { await upSched({ data: r as any }); onChange(); }}
         onDelete={async (rid) => { await del({ data: { table: "schedule_items", id: rid } }); onChange(); }}
         render={(r, upd) => (
