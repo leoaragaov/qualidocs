@@ -493,14 +493,99 @@ function DashboardPage() {
   );
 }
 
-function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string) => void }) {
+function TagBadges({ tags }: { tags: ProjectTag[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {tags.map((t, i) => {
+        const s = tagStyle(t.color);
+        return (
+          <span
+            key={`${t.name}-${i}`}
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
+          >
+            {t.name}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function TagEditor({ value, onChange }: { value: ProjectTag[]; onChange: (t: ProjectTag[]) => void }) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(TAG_COLORS[0].name);
+
+  function addTag() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (value.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) return;
+    onChange([...value, { name: trimmed, color }]);
+    setName("");
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+        {value.length === 0 && (
+          <span className="text-xs text-muted-foreground italic">Nenhuma tag adicionada (No tags added)</span>
+        )}
+        {value.map((t, i) => {
+          const s = tagStyle(t.color);
+          return (
+            <span
+              key={`${t.name}-${i}`}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}
+            >
+              {t.name}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                className="hover:opacity-70"
+                aria-label="Remover tag"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+          placeholder="Nome da tag (Tag name)"
+          className="h-9 flex-1"
+          maxLength={40}
+        />
+        <Button type="button" size="sm" variant="secondary" onClick={addTag} disabled={!name.trim()}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {TAG_COLORS.map((c) => (
+          <button
+            key={c.name}
+            type="button"
+            title={c.label}
+            onClick={() => setColor(c.name)}
+            className={`h-6 w-6 rounded-full ${c.dot} ring-2 ring-offset-1 transition ${color === c.name ? "ring-slate-800" : "ring-transparent"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OwnerCard({ p, onDelete, onEditTags }: { p: MyProjectSummary; onDelete: (id: string) => void; onEditTags: () => void }) {
   const id = p?.id ?? "";
   return (
     <Card className="group rounded-2xl border-slate-200/70 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-0"><Crown className="h-3 w-3 mr-1" /> Proprietário</Badge>
+            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-0"><Crown className="h-3 w-3 mr-1" /> Proprietário (Owner)</Badge>
             {(p?.pending_requests ?? 0) > 0 && (
               <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-0">
                 {(p?.pending_requests ?? 0)} solicitação{(p?.pending_requests ?? 0) > 1 ? "s" : ""}
@@ -519,13 +604,26 @@ function OwnerCard({ p, onDelete }: { p: MyProjectSummary; onDelete: (id: string
           <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {(p?.member_count ?? 0)} {(p?.member_count ?? 0) === 1 ? "membro" : "membros"}</span>
           <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p?.updated_at ?? "")}</span>
         </div>
-        {p?.codigo_acesso && (
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">
-            <KeyRound className="h-3 w-3" /> {p?.codigo_acesso}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            {p?.tags && p.tags.length > 0 ? (
+              <TagBadges tags={p.tags} />
+            ) : (
+              <span className="text-[11px] text-muted-foreground italic">Sem tags (No tags)</span>
+            )}
           </div>
-        )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={onEditTags}
+            title="Editar tags (Edit tags)"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         <Button asChild size="sm" className="w-full rounded-lg">
-          <Link to="/projects/$id" params={{ id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/projects/$id" params={{ id }}>Entrar (Enter) <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </CardContent>
     </Card>
@@ -542,7 +640,7 @@ function CollabCard({ p }: { p: MyProjectSummary }) {
         </div>
         <CardTitle className="mt-2 text-base truncate">{p?.projeto || "(sem nome)"}</CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> {p?.owner_name || "Proprietário"}
+          <Crown className="inline h-3 w-3 text-amber-500 mr-1" /> Proprietário (Owner): {p?.owner_name || "—"}
         </p>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
@@ -551,13 +649,15 @@ function CollabCard({ p }: { p: MyProjectSummary }) {
           <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {(p?.member_count ?? 0)}</span>
           <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {fmt(p?.updated_at ?? "")}</span>
         </div>
+        {p?.tags && p.tags.length > 0 && <TagBadges tags={p.tags} />}
         <Button asChild size="sm" variant="secondary" className="w-full rounded-lg">
-          <Link to="/projects/$id" params={{ id }}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/projects/$id" params={{ id }}>Entrar (Enter) <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </CardContent>
     </Card>
   );
 }
+
 
 function notificationText(n: NotificationRow): string {
   const actor = n?.actor_name || "Alguém";
