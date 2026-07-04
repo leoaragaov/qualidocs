@@ -72,11 +72,20 @@ export const listMembers = createServerFn({ method: "GET" })
   });
 
 // ---------- list invitations ----------
+// Managers no longer have direct SELECT on project_invitations.token via RLS.
+// We verify permission with the user's client, then fetch full rows (incl. token)
+// through the service-role client so the invite link stays usable in the UI.
 export const listInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ project_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }): Promise<InvitationRow[]> => {
-    const { data: rows, error } = await context.supabase
+    const { data: canManage, error: permErr } = await context.supabase
+      .rpc("tms_can_manage", { _pid: data.project_id });
+    if (permErr) throw new Error(permErr.message);
+    if (!canManage) throw new Error("Sem permissão para visualizar convites deste projeto.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
       .from("project_invitations")
       .select("*")
       .eq("project_id", data.project_id)
