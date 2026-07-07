@@ -138,6 +138,70 @@ function AccountPage() {
           </CardContent>
         </Card>
 
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico de acessos <span className="text-xs font-normal text-muted-foreground">(Access history)</span>
+            </CardTitle>
+            <CardDescription>
+              Últimos 100 acessos à sua conta com IP, localização aproximada e data/hora.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {historyQ.isLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+              </div>
+            ) : historyQ.error ? (
+              <p className="text-sm text-rose-600">Falha ao carregar histórico.</p>
+            ) : !historyQ.data || historyQ.data.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum acesso registrado ainda.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-muted-foreground">
+                    <tr className="border-b">
+                      <th className="text-left py-2 pr-3 font-medium">Data / Hora</th>
+                      <th className="text-left py-2 pr-3 font-medium">IP</th>
+                      <th className="text-left py-2 pr-3 font-medium">Localização</th>
+                      <th className="text-left py-2 pr-3 font-medium">Evento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historyQ.data.map((r) => {
+                      const when = new Date(r.created_at).toLocaleString("pt-BR", {
+                        dateStyle: "short",
+                        timeStyle: "medium",
+                      });
+                      const loc = [r.city, r.region, r.country].filter(Boolean).join(", ");
+                      return (
+                        <tr key={r.id} className="border-b last:border-0">
+                          <td className="py-2 pr-3 whitespace-nowrap">{when}</td>
+                          <td className="py-2 pr-3 font-mono text-xs">{r.ip_address ?? "—"}</td>
+                          <td className="py-2 pr-3">
+                            {loc ? (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-muted-foreground" />
+                                {loc}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                <Globe2 className="h-3 w-3" /> Desconhecida
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 capitalize">{r.event_type}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+
         <Card className="rounded-2xl border-rose-200 bg-rose-50/40">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-rose-700">
