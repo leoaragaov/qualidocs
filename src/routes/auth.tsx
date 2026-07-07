@@ -60,8 +60,16 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) redirectAfterAuth();
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) redirectAfterAuth();
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        if (event === "SIGNED_IN") {
+          // fire-and-forget: registra o acesso (IP + geolocalização) no banco
+          import("@/lib/access-history.functions")
+            .then((m) => m.recordAccess({ data: { event_type: "login" } }))
+            .catch((e) => console.warn("[QualiDocs] recordAccess:", e));
+        }
+        redirectAfterAuth();
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
