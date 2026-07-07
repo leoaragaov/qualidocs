@@ -25,6 +25,12 @@ function AccountPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const doDelete = useServerFn(deleteMyAccount);
+  const fetchHistory = useServerFn(listAccessHistory);
+  const historyQ = useQuery({
+    queryKey: ["access-history"],
+    queryFn: () => fetchHistory(),
+    staleTime: 60_000,
+  });
 
   const [email, setEmail] = useState<string | null>(null);
   const [current, setCurrent] = useState("");
