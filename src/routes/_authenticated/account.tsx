@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, KeyRound, ShieldAlert, Trash2, Loader2, UserCircle2 } from "lucide-react";
+import { ArrowLeft, KeyRound, ShieldAlert, Trash2, Loader2, UserCircle2, History, MapPin, Globe2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { deleteMyAccount } from "@/lib/account.functions";
+import { listAccessHistory } from "@/lib/access-history.functions";
 
 export const Route = createFileRoute("/_authenticated/account")({
   head: () => ({ meta: [{ title: "Minha Conta · QualiDocs" }] }),
