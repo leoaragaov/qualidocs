@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_history: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          latitude: number | null
+          longitude: number | null
+          region: string | null
+          timezone: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          region?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          region?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       access_requests: {
         Row: {
           created_at: string
