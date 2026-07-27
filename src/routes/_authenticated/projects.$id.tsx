@@ -1134,7 +1134,7 @@ const ENTITY_LABEL: Record<string, string> = {
 const FIELD_LABEL: Record<string, string> = {
   status: "Status", titulo: "Título", severidade: "Severidade", prioridade: "Prioridade",
   descricao: "Descrição", modulo: "Módulo", ator: "Ator", sprint: "Sprint",
-  story: "User Story", criterio1: "Critério 1", criterio2: "Critério 2",
+  story: "User Story", criterio1: "Critério 1", criterio2: "Critério 2", regra_negocio: "Regra de Negócio",
   precondicoes: "Pré-condições", massa: "Massa de Dados", passos: "Passos",
   esperado: "Resultado Esperado", obtido: "Resultado Obtido", evidencia: "Evidência",
   observacoes: "Observações", tipo: "Tipo", ct_id: "ID CT", us_id: "ID US",
