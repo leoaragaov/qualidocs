@@ -260,11 +260,12 @@ export async function exportCitseToXlsx(data: CitseData) {
       { label: "História de Usuário (User Story) — Eu como… Quero… Para que…", width: 42 },
       { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 },
       { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Regra de Negócio (Business Rule)", width: 42 },
       { label: "Prioridade (Priority)", width: 14 },
       { label: "Sprint / Release", width: 14 },
       { label: "Status", width: 14 },
     ],
-    data.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, u.prioridade, u.sprint, u.status]),
+    data.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, (u as any).regra_negocio ?? "", u.prioridade, u.sprint, u.status]),
   );
 
   buildTable(
