@@ -394,9 +394,10 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
       { label: "ID da História de Usuário (User Story ID)", width: 28 }, { label: "Módulo (Module)", width: 22 },
       { label: "Ator / Perfil (Actor / Role)", width: 22 }, { label: "História de Usuário (User Story)", width: 42 },
       { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 }, { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Regra de Negócio (Business Rule)", width: 42 },
       { label: "Prioridade (Priority)", width: 14 }, { label: "Sprint", width: 14 }, { label: "Status", width: 14 },
     ],
-    adapter.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, u.prioridade, u.sprint, u.status]),
+    adapter.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, (u as any).regra_negocio ?? "", u.prioridade, u.sprint, u.status]),
   );
   buildTable(
     wb, "Casos de Teste", "🧪  CASOS DE TESTE",
