@@ -319,8 +319,8 @@ function buildPlanoDB(wb: ExcelJS.Workbook, d: TmsProjectDetail) {
     },
     userStories: d.userStories.map((u) => ({
       id: u.us_id, modulo: u.modulo, ator: u.ator, story: u.story,
-      criterio1: u.criterio1, criterio2: u.criterio2, prioridade: u.prioridade,
-      sprint: u.sprint, status: u.status,
+      criterio1: u.criterio1, criterio2: u.criterio2, regra_negocio: (u as any).regra_negocio ?? "",
+      prioridade: u.prioridade, sprint: u.sprint, status: u.status,
     })),
     casosTeste: d.testCases.map((c) => ({
       id: c.ct_id, idUs: c.id_us, modulo: c.modulo, tipo: c.tipo,
