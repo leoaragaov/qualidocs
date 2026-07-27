@@ -636,7 +636,7 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
       <RowEditor
         title=""
         rows={safeRows}
-        newRow={() => ({ id: crypto.randomUUID(), project_id: projectId, us_id: "", modulo: "", ator: "", story: "", criterio1: "", criterio2: "", prioridade: "Média", sprint: "", status: "A Documentar" }) as TmsUserStory}
+        newRow={() => ({ id: crypto.randomUUID(), project_id: projectId, us_id: "", modulo: "", ator: "", story: "", criterio1: "", criterio2: "", regra_negocio: "", prioridade: "Média", sprint: "", status: "A Documentar" }) as TmsUserStory}
         onSave={async (r) => { await up({ data: r as any }); onChange(); }}
         onDelete={async (id) => { await del({ data: { table: "user_stories", id } }); onChange(); }}
         render={(r, upd) => (
@@ -648,8 +648,9 @@ function UserStoriesTab({ projectId, rows, onChange }: { projectId: string; rows
               <Field label="História de Usuário (User Story) — Eu como… Quero… Para que…" className="md:col-span-3">
                 <Textarea rows={3} value={textValue(r?.story)} onChange={(e) => upd({ ...r, story: e.target.value })} />
               </Field>
-              <Field label="Critério de Aceitação 1" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio1)} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
-              <Field label="Critério de Aceitação 2" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio2)} onChange={(e) => upd({ ...r, criterio2: e.target.value })} /></Field>
+              <Field label="Critério de Aceitação 1 (Acceptance Criterion 1)" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio1)} onChange={(e) => upd({ ...r, criterio1: e.target.value })} /></Field>
+              <Field label="Critério de Aceitação 2 (Acceptance Criterion 2)" className="md:col-span-3"><Textarea rows={2} value={textValue(r?.criterio2)} onChange={(e) => upd({ ...r, criterio2: e.target.value })} /></Field>
+              <Field label="Regra de Negócio (Business Rule)" className="md:col-span-3"><Textarea rows={3} placeholder="Ex.: Pedidos acima de R$ 500 têm frete grátis; cupom não acumula com promoção; idade mínima 18 anos." value={textValue(r?.regra_negocio)} onChange={(e) => upd({ ...r, regra_negocio: e.target.value })} /></Field>
               <Field label="Prioridade">
                 <Select value={textValue(r?.prioridade || "Média")} onValueChange={(v) => upd({ ...r, prioridade: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1133,7 +1134,7 @@ const ENTITY_LABEL: Record<string, string> = {
 const FIELD_LABEL: Record<string, string> = {
   status: "Status", titulo: "Título", severidade: "Severidade", prioridade: "Prioridade",
   descricao: "Descrição", modulo: "Módulo", ator: "Ator", sprint: "Sprint",
-  story: "User Story", criterio1: "Critério 1", criterio2: "Critério 2",
+  story: "User Story", criterio1: "Critério 1", criterio2: "Critério 2", regra_negocio: "Regra de Negócio",
   precondicoes: "Pré-condições", massa: "Massa de Dados", passos: "Passos",
   esperado: "Resultado Esperado", obtido: "Resultado Obtido", evidencia: "Evidência",
   observacoes: "Observações", tipo: "Tipo", ct_id: "ID CT", us_id: "ID US",

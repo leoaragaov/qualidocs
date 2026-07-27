@@ -691,6 +691,7 @@ export type Database = {
           modulo: string | null
           prioridade: string | null
           project_id: string
+          regra_negocio: string
           sprint: string | null
           status: string | null
           story: string | null
@@ -706,6 +707,7 @@ export type Database = {
           modulo?: string | null
           prioridade?: string | null
           project_id: string
+          regra_negocio?: string
           sprint?: string | null
           status?: string | null
           story?: string | null
@@ -721,6 +723,7 @@ export type Database = {
           modulo?: string | null
           prioridade?: string | null
           project_id?: string
+          regra_negocio?: string
           sprint?: string | null
           status?: string | null
           story?: string | null

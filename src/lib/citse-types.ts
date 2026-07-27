@@ -37,6 +37,7 @@ export type UserStory = {
   story: string;
   criterio1: string;
   criterio2: string;
+  regra_negocio?: string;
   prioridade: string;
   sprint: string;
   status: string;

@@ -260,11 +260,12 @@ export async function exportCitseToXlsx(data: CitseData) {
       { label: "História de Usuário (User Story) — Eu como… Quero… Para que…", width: 42 },
       { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 },
       { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Regra de Negócio (Business Rule)", width: 42 },
       { label: "Prioridade (Priority)", width: 14 },
       { label: "Sprint / Release", width: 14 },
       { label: "Status", width: 14 },
     ],
-    data.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, u.prioridade, u.sprint, u.status]),
+    data.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, (u as any).regra_negocio ?? "", u.prioridade, u.sprint, u.status]),
   );
 
   buildTable(
@@ -319,8 +320,8 @@ function buildPlanoDB(wb: ExcelJS.Workbook, d: TmsProjectDetail) {
     },
     userStories: d.userStories.map((u) => ({
       id: u.us_id, modulo: u.modulo, ator: u.ator, story: u.story,
-      criterio1: u.criterio1, criterio2: u.criterio2, prioridade: u.prioridade,
-      sprint: u.sprint, status: u.status,
+      criterio1: u.criterio1, criterio2: u.criterio2, regra_negocio: (u as any).regra_negocio ?? "",
+      prioridade: u.prioridade, sprint: u.sprint, status: u.status,
     })),
     casosTeste: d.testCases.map((c) => ({
       id: c.ct_id, idUs: c.id_us, modulo: c.modulo, tipo: c.tipo,
@@ -394,9 +395,10 @@ export async function exportProjectToXlsx(d: TmsProjectDetail) {
       { label: "ID da História de Usuário (User Story ID)", width: 28 }, { label: "Módulo (Module)", width: 22 },
       { label: "Ator / Perfil (Actor / Role)", width: 22 }, { label: "História de Usuário (User Story)", width: 42 },
       { label: "Critério de Aceitação 1 (Acceptance Criterion 1)", width: 42 }, { label: "Critério de Aceitação 2 (Acceptance Criterion 2)", width: 42 },
+      { label: "Regra de Negócio (Business Rule)", width: 42 },
       { label: "Prioridade (Priority)", width: 14 }, { label: "Sprint", width: 14 }, { label: "Status", width: 14 },
     ],
-    adapter.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, u.prioridade, u.sprint, u.status]),
+    adapter.userStories.map((u) => [u.id, u.modulo, u.ator, u.story, u.criterio1, u.criterio2, (u as any).regra_negocio ?? "", u.prioridade, u.sprint, u.status]),
   );
   buildTable(
     wb, "Casos de Teste", "🧪  CASOS DE TESTE",
