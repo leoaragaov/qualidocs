@@ -1,0 +1,1 @@
+ALTER TABLE public.user_stories ADD COLUMN IF NOT EXISTS regra_negocio text NOT NULL DEFAULT '';
